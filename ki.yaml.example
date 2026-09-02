@@ -1,0 +1,46 @@
+# Unified configuration for the ki ecosystem
+# Shared by: ki-core, ki-knowledge, kicli-code-assist
+# 
+# Credentials (api_key, base_url) should go in creds.yaml for security
+# This file contains non-sensitive configuration
+
+# LLM Provider: Company KI Server
+ki:
+  base_url: ""      # Set in creds.yaml
+  api_key: ""       # Set in creds.yaml
+  model: "google/gemma-4-26B-A4B-it"
+  endpoint: ""      # Optional: explicit endpoint path
+
+# LLM Provider: Ollama (local inference)
+ollama:
+  base_url: "http://localhost:11434"
+  model: "llama3.2"
+
+# LLM Provider: OpenAI (or compatible)
+openai:
+  base_url: "https://api.openai.com/v1"
+  model: "gpt-4"
+  api_key: ""       # Set in creds.yaml
+
+# Knowledge base settings
+knowledge:
+  data_root: ""                    # e.g., ~/dev_data/kicli
+  cache_db: ""                     # Optional: custom cache location
+  graph_db: ""                     # Optional: custom graph db location
+  embed_model: "nomic-embed-text"  # Model for embeddings
+
+# JIRA integration (optional, for legacy workflows)
+jira:
+  url: ""
+  username: ""
+  api_token: ""    # Set in creds.yaml
+
+# HTTP client settings
+http:
+  request_timeout: 30
+  verify_ssl: true
+
+# Code assistant preferences (for kicli-code-assist)
+# code_assist:
+#   tui_theme: "monokai"
+#   max_buffer_size: 10000
