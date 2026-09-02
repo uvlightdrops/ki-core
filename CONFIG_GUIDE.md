@@ -254,7 +254,30 @@ embed_model = config.knowledge_embed_model
 3. **Use environment variables for CI/CD**
 4. **Restrict file permissions**: `chmod 600 creds.yaml`
 
-## Debugging
+### `kicli` - KI CLI / Code Assistant Settings
+
+```yaml
+kicli:
+  cache_dir: "~/dev_data/kicli-code-assist"
+  session_dir: "~/dev_data/kicli-code-assist/sessions"
+  chat_history_dir: "~/dev_data/kicli-code-assist/chat_history"
+```
+
+**Environment Variables:**
+```bash
+KICLI_CACHE_DIR="~/dev_data/kicli-code-assist"
+KICLI_SESSION_DIR="~/dev_data/kicli-code-assist/sessions"
+KICLI_CHAT_HISTORY_DIR="~/dev_data/kicli-code-assist/chat_history"
+```
+
+**Usage in kicli-code-assist:**
+```python
+from ki_core import Config
+
+config = Config.from_env()
+cache_dir = config.kicli_cache_dir
+chat_history_dir = config.kicli_chat_history_dir
+```
 
 ### Check Loaded Configuration
 

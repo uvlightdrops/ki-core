@@ -124,6 +124,11 @@ class Config:
     request_timeout: int = 30
     http_verify_ssl: bool = True
 
+    # KI CLI / Code Assistant settings
+    kicli_cache_dir: str = ""
+    kicli_session_dir: str = ""
+    kicli_chat_history_dir: str = ""
+
     @classmethod
     def from_yaml(cls, path: Optional[Union[str, Path]] = None) -> "Config":
         """Load configuration from YAML files."""
@@ -141,6 +146,7 @@ class Config:
         )
         jira_cfg = payload.get("jira", {}) if isinstance(payload.get("jira"), dict) else {}
         http_cfg = payload.get("http", {}) if isinstance(payload.get("http"), dict) else {}
+        kicli_cfg = payload.get("kicli", {}) if isinstance(payload.get("kicli"), dict) else {}
 
         # Get creds sections
         creds_cfg = creds_payload.get("creds", {}) if isinstance(creds_payload.get("creds"), dict) else {}
@@ -212,6 +218,19 @@ class Config:
             request_timeout=int(_coalesce(payload.get("request_timeout"), http_cfg.get("request_timeout"), 30)
                                or 30),
             http_verify_ssl=_coalesce(payload.get("http_verify_ssl"), http_cfg.get("verify_ssl"), True),
+            # KI CLI / Code Assistant
+            kicli_cache_dir=_coalesce(
+                payload.get("kicli_cache_dir"),
+                kicli_cfg.get("cache_dir"),
+            ) or "",
+            kicli_session_dir=_coalesce(
+                payload.get("kicli_session_dir"),
+                kicli_cfg.get("session_dir"),
+            ) or "",
+            kicli_chat_history_dir=_coalesce(
+                payload.get("kicli_chat_history_dir"),
+                kicli_cfg.get("chat_history_dir"),
+            ) or "",
         )
 
     @classmethod
@@ -245,6 +264,10 @@ class Config:
             # HTTP
             request_timeout=int(os.getenv("KI_REQUEST_TIMEOUT", str(yaml_cfg.request_timeout))),
             http_verify_ssl=os.getenv("KI_VERIFY_SSL", str(yaml_cfg.http_verify_ssl)).lower() in ("true", "1"),
+            # KI CLI / Code Assistant
+            kicli_cache_dir=os.getenv("KICLI_CACHE_DIR", yaml_cfg.kicli_cache_dir),
+            kicli_session_dir=os.getenv("KICLI_SESSION_DIR", yaml_cfg.kicli_session_dir),
+            kicli_chat_history_dir=os.getenv("KICLI_CHAT_HISTORY_DIR", yaml_cfg.kicli_chat_history_dir),
         )
 
     def validate(self) -> None:

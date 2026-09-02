@@ -40,7 +40,8 @@ http:
   request_timeout: 30
   verify_ssl: true
 
-# Code assistant preferences (for kicli-code-assist)
-# code_assist:
-#   tui_theme: "monokai"
-#   max_buffer_size: 10000
+# KI CLI / Code Assistant (kicli-code-assist)
+kicli:
+  cache_dir: "~/dev_data/kicli-code-assist"
+  session_dir: "~/dev_data/kicli-code-assist/sessions"
+  chat_history_dir: "~/dev_data/kicli-code-assist/chat_history"
