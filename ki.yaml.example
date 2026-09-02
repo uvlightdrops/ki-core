@@ -45,3 +45,13 @@ kicli:
   cache_dir: "~/dev_data/kicli-code-assist"
   session_dir: "~/dev_data/kicli-code-assist/sessions"
   chat_history_dir: "~/dev_data/kicli-code-assist/chat_history"
+
+# Context System (Phase 2: Intelligent Context)
+context:
+  max_files: 10                    # Maximum number of files to include in context
+  max_size_mb: 5                   # Maximum total context size in MB
+  relevance_threshold: 0.15        # Minimum relevance score (0-1, lower=more inclusive)
+  cache_enabled: true              # Enable context caching
+  cache_ttl_hours: 24              # Cache time-to-live in hours
+  cache_max_size_mb: 50            # Maximum cache size in MB
+  ignore_patterns: "__pycache__,*.pyc,node_modules,.git,.env"  # Patterns to ignore

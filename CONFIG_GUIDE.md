@@ -279,6 +279,40 @@ cache_dir = config.kicli_cache_dir
 chat_history_dir = config.kicli_chat_history_dir
 ```
 
+### `context` - Context System Settings (Phase 2)
+
+```yaml
+context:
+  max_files: 10                    # Maximum number of files in context
+  max_size_mb: 5                   # Maximum total context size in MB
+  relevance_threshold: 0.5         # Minimum relevance score (0-1)
+  cache_enabled: true              # Enable context caching
+  cache_ttl_hours: 24              # Cache time-to-live in hours
+  cache_max_size_mb: 50            # Maximum cache size in MB
+  ignore_patterns: "__pycache__,*.pyc,node_modules,.git,.env"
+```
+
+**Environment Variables:**
+```bash
+CONTEXT_MAX_FILES=10
+CONTEXT_MAX_SIZE_MB=5
+CONTEXT_RELEVANCE_THRESHOLD=0.5
+CONTEXT_CACHE_ENABLED=true
+CONTEXT_CACHE_TTL_HOURS=24
+CONTEXT_CACHE_MAX_SIZE_MB=50
+CONTEXT_IGNORE_PATTERNS="__pycache__,*.pyc,node_modules,.git,.env"
+```
+
+**Usage in kicli-code-assist:**
+```python
+from ki_core import Config
+
+config = Config.from_env()
+max_files = config.context_max_files
+cache_enabled = config.context_cache_enabled
+ignore_patterns = config.context_ignore_patterns.split(",")
+```
+
 ### Check Loaded Configuration
 
 ```bash

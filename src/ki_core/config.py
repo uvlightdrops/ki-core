@@ -129,6 +129,15 @@ class Config:
     kicli_session_dir: str = ""
     kicli_chat_history_dir: str = ""
 
+    # Context System settings (Phase 2)
+    context_max_files: int = 10
+    context_max_size_mb: int = 5
+    context_relevance_threshold: float = 0.15
+    context_cache_enabled: bool = True
+    context_cache_ttl_hours: int = 24
+    context_cache_max_size_mb: int = 50
+    context_ignore_patterns: str = "__pycache__,*.pyc,node_modules,.git,.env"
+
     @classmethod
     def from_yaml(cls, path: Optional[Union[str, Path]] = None) -> "Config":
         """Load configuration from YAML files."""
@@ -147,6 +156,7 @@ class Config:
         jira_cfg = payload.get("jira", {}) if isinstance(payload.get("jira"), dict) else {}
         http_cfg = payload.get("http", {}) if isinstance(payload.get("http"), dict) else {}
         kicli_cfg = payload.get("kicli", {}) if isinstance(payload.get("kicli"), dict) else {}
+        context_cfg = payload.get("context", {}) if isinstance(payload.get("context"), dict) else {}
 
         # Get creds sections
         creds_cfg = creds_payload.get("creds", {}) if isinstance(creds_payload.get("creds"), dict) else {}
@@ -231,6 +241,42 @@ class Config:
                 payload.get("kicli_chat_history_dir"),
                 kicli_cfg.get("chat_history_dir"),
             ) or "",
+            # Context System
+            context_max_files=int(_coalesce(
+                payload.get("context_max_files"),
+                context_cfg.get("max_files"),
+                10
+            ) or 10),
+            context_max_size_mb=int(_coalesce(
+                payload.get("context_max_size_mb"),
+                context_cfg.get("max_size_mb"),
+                5
+            ) or 5),
+            context_relevance_threshold=float(_coalesce(
+                payload.get("context_relevance_threshold"),
+                context_cfg.get("relevance_threshold"),
+                0.5
+            ) or 0.5),
+            context_cache_enabled=_coalesce(
+                payload.get("context_cache_enabled"),
+                context_cfg.get("cache_enabled"),
+                True
+            ),
+            context_cache_ttl_hours=int(_coalesce(
+                payload.get("context_cache_ttl_hours"),
+                context_cfg.get("cache_ttl_hours"),
+                24
+            ) or 24),
+            context_cache_max_size_mb=int(_coalesce(
+                payload.get("context_cache_max_size_mb"),
+                context_cfg.get("cache_max_size_mb"),
+                50
+            ) or 50),
+            context_ignore_patterns=_coalesce(
+                payload.get("context_ignore_patterns"),
+                context_cfg.get("ignore_patterns"),
+                "__pycache__,*.pyc,node_modules,.git,.env"
+            ) or "__pycache__,*.pyc,node_modules,.git,.env",
         )
 
     @classmethod
@@ -268,6 +314,14 @@ class Config:
             kicli_cache_dir=os.getenv("KICLI_CACHE_DIR", yaml_cfg.kicli_cache_dir),
             kicli_session_dir=os.getenv("KICLI_SESSION_DIR", yaml_cfg.kicli_session_dir),
             kicli_chat_history_dir=os.getenv("KICLI_CHAT_HISTORY_DIR", yaml_cfg.kicli_chat_history_dir),
+            # Context System
+            context_max_files=int(os.getenv("CONTEXT_MAX_FILES", str(yaml_cfg.context_max_files))),
+            context_max_size_mb=int(os.getenv("CONTEXT_MAX_SIZE_MB", str(yaml_cfg.context_max_size_mb))),
+            context_relevance_threshold=float(os.getenv("CONTEXT_RELEVANCE_THRESHOLD", str(yaml_cfg.context_relevance_threshold))),
+            context_cache_enabled=os.getenv("CONTEXT_CACHE_ENABLED", str(yaml_cfg.context_cache_enabled)).lower() in ("true", "1"),
+            context_cache_ttl_hours=int(os.getenv("CONTEXT_CACHE_TTL_HOURS", str(yaml_cfg.context_cache_ttl_hours))),
+            context_cache_max_size_mb=int(os.getenv("CONTEXT_CACHE_MAX_SIZE_MB", str(yaml_cfg.context_cache_max_size_mb))),
+            context_ignore_patterns=os.getenv("CONTEXT_IGNORE_PATTERNS", yaml_cfg.context_ignore_patterns),
         )
 
     def validate(self) -> None:
