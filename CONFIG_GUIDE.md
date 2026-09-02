@@ -313,6 +313,36 @@ cache_enabled = config.context_cache_enabled
 ignore_patterns = config.context_ignore_patterns.split(",")
 ```
 
+### `diff` - Diff Engine Settings (Phase 3)
+
+```yaml
+diff:
+  context_lines: 3                 # Lines of context in diffs
+  format: "unified"                # Diff format type
+  highlight_syntax: true           # Enable syntax highlighting
+  auto_apply_threshold: 0.8        # Auto-apply confidence level
+  max_file_size_kb: 100            # Maximum file size for diffing
+```
+
+**Environment Variables:**
+```bash
+DIFF_CONTEXT_LINES=3
+DIFF_FORMAT="unified"
+DIFF_HIGHLIGHT_SYNTAX=true
+DIFF_AUTO_APPLY_THRESHOLD=0.8
+DIFF_MAX_FILE_SIZE_KB=100
+```
+
+**Usage in kicli-code-assist:**
+```python
+from ki_core import Config
+
+config = Config.from_env()
+context_lines = config.diff_context_lines
+diff_format = config.diff_format
+highlight = config.diff_highlight_syntax
+```
+
 ### Check Loaded Configuration
 
 ```bash

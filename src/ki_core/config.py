@@ -138,6 +138,13 @@ class Config:
     context_cache_max_size_mb: int = 50
     context_ignore_patterns: str = "__pycache__,*.pyc,node_modules,.git,.env"
 
+    # Diff Engine settings (Phase 3)
+    diff_context_lines: int = 3
+    diff_format: str = "unified"  # unified, side-by-side, or inline
+    diff_highlight_syntax: bool = True
+    diff_auto_apply_threshold: float = 0.8
+    diff_max_file_size_kb: int = 100
+
     @classmethod
     def from_yaml(cls, path: Optional[Union[str, Path]] = None) -> "Config":
         """Load configuration from YAML files."""
@@ -157,6 +164,7 @@ class Config:
         http_cfg = payload.get("http", {}) if isinstance(payload.get("http"), dict) else {}
         kicli_cfg = payload.get("kicli", {}) if isinstance(payload.get("kicli"), dict) else {}
         context_cfg = payload.get("context", {}) if isinstance(payload.get("context"), dict) else {}
+        diff_cfg = payload.get("diff", {}) if isinstance(payload.get("diff"), dict) else {}
 
         # Get creds sections
         creds_cfg = creds_payload.get("creds", {}) if isinstance(creds_payload.get("creds"), dict) else {}
@@ -277,6 +285,32 @@ class Config:
                 context_cfg.get("ignore_patterns"),
                 "__pycache__,*.pyc,node_modules,.git,.env"
             ) or "__pycache__,*.pyc,node_modules,.git,.env",
+            # Diff Engine
+            diff_context_lines=int(_coalesce(
+                payload.get("diff_context_lines"),
+                diff_cfg.get("context_lines"),
+                3
+            ) or 3),
+            diff_format=_coalesce(
+                payload.get("diff_format"),
+                diff_cfg.get("format"),
+                "unified"
+            ) or "unified",
+            diff_highlight_syntax=_coalesce(
+                payload.get("diff_highlight_syntax"),
+                diff_cfg.get("highlight_syntax"),
+                True
+            ),
+            diff_auto_apply_threshold=float(_coalesce(
+                payload.get("diff_auto_apply_threshold"),
+                diff_cfg.get("auto_apply_threshold"),
+                0.8
+            ) or 0.8),
+            diff_max_file_size_kb=int(_coalesce(
+                payload.get("diff_max_file_size_kb"),
+                diff_cfg.get("max_file_size_kb"),
+                100
+            ) or 100),
         )
 
     @classmethod
@@ -322,6 +356,12 @@ class Config:
             context_cache_ttl_hours=int(os.getenv("CONTEXT_CACHE_TTL_HOURS", str(yaml_cfg.context_cache_ttl_hours))),
             context_cache_max_size_mb=int(os.getenv("CONTEXT_CACHE_MAX_SIZE_MB", str(yaml_cfg.context_cache_max_size_mb))),
             context_ignore_patterns=os.getenv("CONTEXT_IGNORE_PATTERNS", yaml_cfg.context_ignore_patterns),
+            # Diff Engine
+            diff_context_lines=int(os.getenv("DIFF_CONTEXT_LINES", str(yaml_cfg.diff_context_lines))),
+            diff_format=os.getenv("DIFF_FORMAT", yaml_cfg.diff_format),
+            diff_highlight_syntax=os.getenv("DIFF_HIGHLIGHT_SYNTAX", str(yaml_cfg.diff_highlight_syntax)).lower() in ("true", "1"),
+            diff_auto_apply_threshold=float(os.getenv("DIFF_AUTO_APPLY_THRESHOLD", str(yaml_cfg.diff_auto_apply_threshold))),
+            diff_max_file_size_kb=int(os.getenv("DIFF_MAX_FILE_SIZE_KB", str(yaml_cfg.diff_max_file_size_kb))),
         )
 
     def validate(self) -> None:

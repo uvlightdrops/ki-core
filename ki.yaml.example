@@ -55,3 +55,11 @@ context:
   cache_ttl_hours: 24              # Cache time-to-live in hours
   cache_max_size_mb: 50            # Maximum cache size in MB
   ignore_patterns: "__pycache__,*.pyc,node_modules,.git,.env"  # Patterns to ignore
+
+# Diff Engine (Phase 3: Diff & Change Management)
+diff:
+  context_lines: 3                 # Number of context lines in diffs
+  format: "unified"                # Diff format: unified, side-by-side, inline
+  highlight_syntax: true           # Syntax highlighting in diff viewer
+  auto_apply_threshold: 0.8        # Confidence threshold for auto-applying changes
+  max_file_size_kb: 100            # Maximum file size to diff
