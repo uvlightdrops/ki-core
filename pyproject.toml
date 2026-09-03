@@ -12,7 +12,7 @@ dependencies = [
     "requests>=2.31.0",
     "pyyaml>=6.0",
     "python-dotenv>=1.0.0",
-    "yaml-cfg-wizard @ file:///home/flow/dev_flow/yaml_cfg_wizard",
+    "yaml-cfg-wizard>=0.1.0",
 ]
 
 [project.scripts]
@@ -32,6 +32,9 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+ki_core = ["schema/*.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

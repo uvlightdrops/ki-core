@@ -66,7 +66,8 @@ def _find_creds_yaml_path(path: Optional[Union[str, Path]] = None) -> Optional[P
 
 def _schema_file() -> Path:
     """Get path to ki-core base schema."""
-    return Path(__file__).resolve().parents[2] / "schema" / "config.schema.yaml"
+    from ki_core.schema_manager import get_schema_path
+    return get_schema_path()
 
 
 def _get_merged_schemas() -> list[Path]:
