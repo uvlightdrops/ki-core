@@ -2,89 +2,101 @@
 
 ## Overview
 
-ki-core is the shared configuration and LLM provider abstraction for the ki ecosystem.
-All projects (ki-knowledge, kicli-code-assist) use the same configuration system.
+`ki-core` resolves configuration in layers and exposes the result through the typed `Config` dataclass.
 
-## Configuration Files
+The merge model is:
 
-Configuration is loaded in this priority order:
+1. base config file
+2. `config/defaults/*.yaml`
+3. `config/profiles/*.yaml`
+4. `config/stages/*.yaml`
+5. `config/runtime/runtime.yaml`
+6. environment variables
 
-1. **Environment Variables** (highest priority)
-2. **`ki.yaml`** (local config, non-sensitive)
-3. **`creds.yaml`** (global credentials, gitignored)
-4. **Defaults** (lowest priority)
+Later layers win.
 
-### Location Search Order
+Credentials remain separate in `creds.yaml` and are merged by `ki-core` on top of the YAML config for secret-bearing fields.
 
-ki-core looks for config files in these locations:
+## Base config search order
 
-```
+When you call `Config.from_env()` or `Config.from_yaml()` without a fully layered setup, `ki-core` first looks for a base config file in:
+
+```text
 ./ki.yaml
 ./kicli.yaml
 ./config.yaml
+./.ki.yaml
+./.kicli.yaml
 ./config/ki.yaml
 ./config/config.yaml
+./config/dev.yaml
+./config/prod.yaml
 ~/.config/ki/config.yaml
 ~/.config/kicli/config.yaml
 ```
 
-## Setup
+If a base file is found, `ki-core` also looks for sibling layered config directories beneath that file's directory:
 
-### 1. Copy Example Config
-
-```bash
-cp ki.yaml.example ki.yaml
+```text
+config/defaults/
+config/profiles/
+config/stages/
+config/runtime/runtime.yaml
 ```
 
-### 2. Create Credentials File (Optional)
+## Credentials search order
 
-For security, keep API keys separate:
+Secrets are resolved separately from:
 
-```bash
-cat > creds.yaml << 'EOF'
-ki:
-  base_url: "https://ki.company.com"
-  api_key: "your-api-key-here"
-
-openai:
-  api_key: "sk-..."
-EOF
-
-chmod 600 creds.yaml
-git add .gitignore  # Ensure creds.yaml is ignored
+```text
+./creds.yaml
+./config/creds.yaml
+~/.config/ki/creds.yaml
+~/.config/kicli/creds.yaml
 ```
 
-### 3. Set Environment Variables (Alternative)
+If an explicit config file path is passed, `ki-core` also checks that file's directory for `creds.yaml` and `config/creds.yaml`.
 
-```bash
-export KI_BASE_URL="https://ki.company.com"
-export KI_API_KEY="your-api-key"
-export KI_MODEL="google/gemma-4-26B-A4B-it"
-export OLLAMA_BASE_URL="http://localhost:11434"
-export OLLAMA_MODEL="llama3.2"
+## Recommended layout
+
+For layered projects, prefer:
+
+```text
+project/
+├── ki.yaml
+├── creds.yaml
+└── config/
+    ├── defaults/
+    ├── profiles/
+    ├── stages/
+    └── runtime/
+        └── runtime.yaml
 ```
 
-## Configuration Sections
+Use `ki.yaml` as the base shared entrypoint and place project-specific overlays in `config/`.
 
-### `ki` - Company KI Server
+## Supported config sections
+
+## `ki`
 
 ```yaml
 ki:
-  base_url: "https://ki.company.com"     # Keep in creds.yaml
-  api_key: "..."                         # Keep in creds.yaml
-  model: "google/gemma-4-26B-A4B-it"     # Model name
-  endpoint: "/google/nimservice-..."     # Optional explicit endpoint
+  base_url: "https://ki.company.com"
+  api_key: ""
+  model: "google/gemma-4-26B-A4B-it"
+  endpoint: ""
 ```
 
-**Environment Variables:**
+Env:
+
 ```bash
-KI_BASE_URL="https://ki.company.com"
-KI_API_KEY="..."
-KI_MODEL="google/gemma-4-26B-A4B-it"
-KI_ENDPOINT="/path/to/endpoint"
+KI_BASE_URL=
+KI_API_KEY=
+KI_MODEL=
+KI_ENDPOINT=
 ```
 
-### `ollama` - Local Inference
+## `ollama`
 
 ```yaml
 ollama:
@@ -92,47 +104,50 @@ ollama:
   model: "llama3.2"
 ```
 
-**Environment Variables:**
+Env:
+
 ```bash
-OLLAMA_BASE_URL="http://localhost:11434"
-OLLAMA_MODEL="llama3.2"
+OLLAMA_BASE_URL=
+OLLAMA_MODEL=
 ```
 
-### `openai` - OpenAI or Compatible API
+## `openai`
 
 ```yaml
 openai:
   base_url: "https://api.openai.com/v1"
   model: "gpt-4"
-  api_key: "sk-..."                      # Keep in creds.yaml
+  api_key: ""
 ```
 
-**Environment Variables:**
+Env:
+
 ```bash
-OPENAI_BASE_URL="https://api.openai.com/v1"
-OPENAI_MODEL="gpt-4"
-OPENAI_API_KEY="sk-..."
+OPENAI_BASE_URL=
+OPENAI_MODEL=
+OPENAI_API_KEY=
 ```
 
-### `knowledge` - Knowledge Base Settings
+## `knowledge`
 
 ```yaml
 knowledge:
-  data_root: "~/dev_data/kicli"
+  data_root: "~/dev_data/ki"
   cache_db: "~/.cache/ki/cache.db"
   graph_db: "~/.cache/ki/graph.db"
   embed_model: "nomic-embed-text"
 ```
 
-**Environment Variables:**
+Env:
+
 ```bash
-KNOWLEDGE_DATA_ROOT="~/dev_data/kicli"
-KNOWLEDGE_CACHE_DB="~/.cache/ki/cache.db"
-KNOWLEDGE_GRAPH_DB="~/.cache/ki/graph.db"
-KNOWLEDGE_EMBED_MODEL="nomic-embed-text"
+KNOWLEDGE_DATA_ROOT=
+KNOWLEDGE_CACHE_DB=
+KNOWLEDGE_GRAPH_DB=
+KNOWLEDGE_EMBED_MODEL=
 ```
 
-### `http` - HTTP Client Settings
+## `http`
 
 ```yaml
 http:
@@ -140,225 +155,78 @@ http:
   verify_ssl: true
 ```
 
-**Environment Variables:**
+Env:
+
 ```bash
-KI_REQUEST_TIMEOUT="30"
-KI_VERIFY_SSL="true"
+KI_REQUEST_TIMEOUT=
+KI_VERIFY_SSL=
 ```
 
-## Usage in Code
-
-### Load Configuration
-
-```python
-from ki_core import Config
-
-# Load from YAML + environment
-config = Config.from_env()
-
-# Or explicit path
-config = Config.from_yaml("./config/prod.yaml")
-```
-
-### Use with Providers
-
-```python
-from ki_core import Config
-from ki_core.adapters.ollama import OllamaClient
-from ki_core.adapters.openai_compat import OpenAICompatibleClient
-
-config = Config.from_env()
-
-# Use Ollama
-ollama_client = OllamaClient(
-    base_url=config.ollama_base_url,
-    model=config.ollama_model
-)
-
-# Use OpenAI
-openai_client = OpenAICompatibleClient(
-    base_url=config.openai_base_url,
-    api_key=config.openai_api_key,
-    model=config.openai_model
-)
-```
-
-## Examples
-
-### Example 1: Local Development with Ollama
-
-**ki.yaml:**
-```yaml
-ollama:
-  base_url: "http://localhost:11434"
-  model: "mistral"
-```
-
-**Usage:**
-```bash
-ollama serve
-# In another terminal:
-ki-chat ollama
-```
-
-### Example 2: Production with Company KI Server
-
-**ki.yaml:**
-```yaml
-ki:
-  model: "google/gemma-4-26B-A4B-it"
-http:
-  request_timeout: 60
-```
-
-**creds.yaml:**
-```yaml
-ki:
-  base_url: "https://ki.company.com"
-  api_key: "prod-key-xxx"
-```
-
-**Usage:**
-```bash
-ki-chat openai
-# Uses config from ki.yaml + creds.yaml
-```
-
-### Example 3: Using Knowledge Base
-
-**ki.yaml:**
-```yaml
-knowledge:
-  data_root: "~/dev_data/kicli"
-  embed_model: "nomic-embed-text"
-
-ollama:
-  base_url: "http://localhost:11434"
-  model: "mistral"
-```
-
-**Usage:**
-```python
-from ki_core import Config
-
-config = Config.from_env()
-data_path = config.knowledge_data_root
-embed_model = config.knowledge_embed_model
-# Use in ki-knowledge
-```
-
-## Security Best Practices
-
-1. **Keep credentials in `creds.yaml`** - Not in `ki.yaml`
-2. **Add `creds.yaml` to `.gitignore`**
-3. **Use environment variables for CI/CD**
-4. **Restrict file permissions**: `chmod 600 creds.yaml`
-
-### `kicli` - KI CLI / Code Assistant Settings
+## `kicli`
 
 ```yaml
 kicli:
   cache_dir: "~/dev_data/kicli-code-assist"
-  session_dir: "~/dev_data/kicli-code-assist/sessions"
+  session_dir: "~/dev_data/kicli-code-assist/session"
   chat_history_dir: "~/dev_data/kicli-code-assist/chat_history"
+  allowed_base_path: "/path/to/workspace"
 ```
 
-**Environment Variables:**
+Env:
+
 ```bash
-KICLI_CACHE_DIR="~/dev_data/kicli-code-assist"
-KICLI_SESSION_DIR="~/dev_data/kicli-code-assist/sessions"
-KICLI_CHAT_HISTORY_DIR="~/dev_data/kicli-code-assist/chat_history"
+KICLI_CACHE_DIR=
+KICLI_SESSION_DIR=
+KICLI_CHAT_HISTORY_DIR=
+KICLI_ALLOWED_BASE_PATH=
 ```
 
-**Usage in kicli-code-assist:**
-```python
-from ki_core import Config
-
-config = Config.from_env()
-cache_dir = config.kicli_cache_dir
-chat_history_dir = config.kicli_chat_history_dir
-```
-
-### `context` - Context System Settings (Phase 2)
+## `context`
 
 ```yaml
 context:
-  max_files: 10                    # Maximum number of files in context
-  max_size_mb: 5                   # Maximum total context size in MB
-  relevance_threshold: 0.5         # Minimum relevance score (0-1)
-  cache_enabled: true              # Enable context caching
-  cache_ttl_hours: 24              # Cache time-to-live in hours
-  cache_max_size_mb: 50            # Maximum cache size in MB
+  max_files: 10
+  max_size_mb: 5
+  relevance_threshold: 0.5
+  cache_enabled: true
+  cache_ttl_hours: 24
+  cache_max_size_mb: 50
   ignore_patterns: "__pycache__,*.pyc,node_modules,.git,.env"
 ```
 
-**Environment Variables:**
-```bash
-CONTEXT_MAX_FILES=10
-CONTEXT_MAX_SIZE_MB=5
-CONTEXT_RELEVANCE_THRESHOLD=0.5
-CONTEXT_CACHE_ENABLED=true
-CONTEXT_CACHE_TTL_HOURS=24
-CONTEXT_CACHE_MAX_SIZE_MB=50
-CONTEXT_IGNORE_PATTERNS="__pycache__,*.pyc,node_modules,.git,.env"
-```
-
-**Usage in kicli-code-assist:**
-```python
-from ki_core import Config
-
-config = Config.from_env()
-max_files = config.context_max_files
-cache_enabled = config.context_cache_enabled
-ignore_patterns = config.context_ignore_patterns.split(",")
-```
-
-### `diff` - Diff Engine Settings (Phase 3)
+## `diff`
 
 ```yaml
 diff:
-  context_lines: 3                 # Lines of context in diffs
-  format: "unified"                # Diff format type
-  highlight_syntax: true           # Enable syntax highlighting
-  auto_apply_threshold: 0.8        # Auto-apply confidence level
-  max_file_size_kb: 100            # Maximum file size for diffing
+  context_lines: 3
+  format: "unified"
+  highlight_syntax: true
+  auto_apply_threshold: 0.8
+  max_file_size_kb: 100
 ```
 
-**Environment Variables:**
-```bash
-DIFF_CONTEXT_LINES=3
-DIFF_FORMAT="unified"
-DIFF_HIGHLIGHT_SYNTAX=true
-DIFF_AUTO_APPLY_THRESHOLD=0.8
-DIFF_MAX_FILE_SIZE_KB=100
-```
+## Usage
 
-**Usage in kicli-code-assist:**
 ```python
 from ki_core import Config
 
 config = Config.from_env()
-context_lines = config.diff_context_lines
-diff_format = config.diff_format
-highlight = config.diff_highlight_syntax
 ```
 
-### Check Loaded Configuration
+Or with an explicit base file:
 
-```bash
-python3 -c "
+```python
 from ki_core import Config
-cfg = Config.from_env()
-print(f'Ollama: {cfg.ollama_base_url}')
-print(f'Model: {cfg.ollama_model}')
-print(f'Timeout: {cfg.request_timeout}')
-"
+
+config = Config.from_yaml("/path/to/project/ki.yaml")
 ```
 
-### Check Config File Locations
+In both cases, sibling layered config under `config/` is included automatically.
 
-```bash
-# See which config files were found
-find ~/.config/ki -name "*.yaml" 2>/dev/null
-find . -name "ki.yaml" -o -name "creds.yaml"
-```
+## Notes
+
+- `Config` still exposes flat Python attributes like `config.kicli_cache_dir`.
+- YAML may use sectioned keys like `kicli.cache_dir`.
+- Legacy top-level keys like `kicli_cache_dir` are still read for compatibility.
+- Environment variables remain the final override layer.
+- Keep secrets in `creds.yaml`, not in `ki.yaml`.

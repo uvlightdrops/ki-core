@@ -14,6 +14,7 @@ from typing import Any, Optional, Union
 
 import yaml
 from dotenv import find_dotenv, load_dotenv
+from yaml_cfg_wizard import ConfigResolver
 
 
 def _find_yaml_config_path(path: Optional[Union[str, Path]] = None) -> Optional[Path]:
@@ -75,8 +76,19 @@ def _read_yaml_config(path: Optional[Union[str, Path]] = None) -> dict:
     config_path = _find_yaml_config_path(path)
     if not config_path:
         return {}
-    with config_path.open("r", encoding="utf-8") as f:
-        payload = yaml.safe_load(f) or {}
+    config_dir = config_path.resolve().parent
+    layered_config_dir = config_dir / "config"
+    runtime_file = layered_config_dir / "runtime" / "runtime.yaml"
+
+    resolver = ConfigResolver(
+        defaults=[config_path],
+        defaults_dir=layered_config_dir / "defaults" if (layered_config_dir / "defaults").exists() else None,
+        profiles_dir=layered_config_dir / "profiles" if (layered_config_dir / "profiles").exists() else None,
+        stages_dir=layered_config_dir / "stages" if (layered_config_dir / "stages").exists() else None,
+        runtime_file=runtime_file if runtime_file.exists() else None,
+        env_prefix="KI_CFG_DISABLED_",
+    )
+    payload = resolver.resolve()
     if not isinstance(payload, dict):
         raise ValueError(f"YAML config must contain a mapping at {config_path}")
     return payload
@@ -115,6 +127,12 @@ class Config:
     knowledge_graph_db: Optional[str] = None
     knowledge_embed_model: str = "nomic-embed-text"
 
+    # Knowledge infosite settings (knowledge presentation / browsable website)
+    infosite_enabled: bool = False
+    infosite_title: str = ""
+    infosite_output_base_dir: str = ""
+    infosite_domain: str = "default"
+
     # JIRA (optional, for legacy integration)
     jira_url: Optional[str] = None
     jira_username: Optional[str] = None
@@ -128,6 +146,7 @@ class Config:
     kicli_cache_dir: str = ""
     kicli_session_dir: str = ""
     kicli_chat_history_dir: str = ""
+    kicli_allowed_base_path: str = ""
 
     # Context System settings (Phase 2)
     context_max_files: int = 10
@@ -160,6 +179,7 @@ class Config:
             if isinstance(payload.get("knowledge"), dict)
             else {}
         )
+        infosite_cfg = payload.get("infosite", {}) if isinstance(payload.get("infosite"), dict) else {}
         jira_cfg = payload.get("jira", {}) if isinstance(payload.get("jira"), dict) else {}
         http_cfg = payload.get("http", {}) if isinstance(payload.get("http"), dict) else {}
         kicli_cfg = payload.get("kicli", {}) if isinstance(payload.get("kicli"), dict) else {}
@@ -228,6 +248,28 @@ class Config:
                 knowledge_cfg.get("embed_model"),
             )
             or "nomic-embed-text",
+            # Infosite (Knowledge Presentation)
+            infosite_enabled=_coalesce(
+                payload.get("infosite_enabled"),
+                infosite_cfg.get("enabled"),
+                False
+            ),
+            infosite_title=_coalesce(
+                payload.get("infosite_title"),
+                infosite_cfg.get("title"),
+                ""
+            ) or "",
+            infosite_output_base_dir=_coalesce(
+                payload.get("infosite_output_base_dir"),
+                infosite_cfg.get("output_base_dir"),
+                infosite_cfg.get("output_dir"),
+                ""
+            ) or "",
+            infosite_domain=_coalesce(
+                payload.get("infosite_domain"),
+                infosite_cfg.get("domain"),
+                "default"
+            ) or "default",
             # JIRA
             jira_url=_coalesce(payload.get("jira_url"), jira_cfg.get("url"), jira_cfg.get("base_url")),
             jira_username=_coalesce(payload.get("jira_username"), jira_cfg.get("username")),
@@ -248,6 +290,11 @@ class Config:
             kicli_chat_history_dir=_coalesce(
                 payload.get("kicli_chat_history_dir"),
                 kicli_cfg.get("chat_history_dir"),
+            ) or "",
+            kicli_allowed_base_path=_coalesce(
+                payload.get("kicli_allowed_base_path"),
+                kicli_cfg.get("allowed_base_path"),
+                kicli_cfg.get("workspace_root"),
             ) or "",
             # Context System
             context_max_files=int(_coalesce(
@@ -348,6 +395,7 @@ class Config:
             kicli_cache_dir=os.getenv("KICLI_CACHE_DIR", yaml_cfg.kicli_cache_dir),
             kicli_session_dir=os.getenv("KICLI_SESSION_DIR", yaml_cfg.kicli_session_dir),
             kicli_chat_history_dir=os.getenv("KICLI_CHAT_HISTORY_DIR", yaml_cfg.kicli_chat_history_dir),
+            kicli_allowed_base_path=os.getenv("KICLI_ALLOWED_BASE_PATH", yaml_cfg.kicli_allowed_base_path),
             # Context System
             context_max_files=int(os.getenv("CONTEXT_MAX_FILES", str(yaml_cfg.context_max_files))),
             context_max_size_mb=int(os.getenv("CONTEXT_MAX_SIZE_MB", str(yaml_cfg.context_max_size_mb))),

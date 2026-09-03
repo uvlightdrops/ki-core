@@ -8,7 +8,7 @@ Provides unified LLM provider access, configuration management, and CLI tools.
 
 - ✅ **Unified AIClient interface** – single abstraction for all LLM providers
 - ✅ **Multiple adapters** – OpenAI, Ollama (local), Mock (testing)
-- ✅ **Shared configuration** – YAML + environment variables
+- ✅ **Shared configuration** – layered YAML + credentials + environment variables
 - ✅ **CLI tool** – `ki-chat` for quick testing
 - ✅ **Streaming support** – all providers support token streaming
 - ✅ **Error handling** – specific exceptions for different error types
@@ -16,7 +16,7 @@ Provides unified LLM provider access, configuration management, and CLI tools.
 ## Documentation
 
 - **[Getting Started](docs/GETTING_STARTED.md)** – Quick start with any provider
-- **[Configuration Guide](CONFIG_GUIDE.md)** – YAML config, environment variables
+- **[Configuration Guide](CONFIG_GUIDE.md)** – layered config, credentials, environment variables
 - **[Provider Reference](#providers)** – Details on each provider
 
 
