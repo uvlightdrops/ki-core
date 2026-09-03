@@ -1,0 +1,219 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+type: object
+properties:
+  llm:
+    type: object
+    properties:
+      default_provider:
+        type: string
+      providers:
+        type: object
+        properties:
+          ki:
+            type: object
+            properties:
+              base_url:
+                type: string
+              api_key:
+                type: string
+              model:
+                type: string
+              endpoint:
+                type: string
+            additionalProperties: true
+          openai:
+            type: object
+            properties:
+              base_url:
+                type: string
+              api_key:
+                type: string
+              model:
+                type: string
+            additionalProperties: true
+          ollama:
+            type: object
+            properties:
+              base_url:
+                type: string
+              model:
+                type: string
+            additionalProperties: true
+        additionalProperties: true
+    additionalProperties: true
+  knowledge:
+    type: object
+    properties:
+      data_root:
+        type: string
+      cache_db:
+        type: string
+      graph_db:
+        type: string
+      embed_model:
+        type: string
+      default_domain:
+        type: string
+      paths:
+        type: object
+        properties:
+          markdown_root:
+            type: string
+          jira_root:
+            type: string
+          ontology_root:
+            type: string
+          pdf_root:
+            type: string
+        additionalProperties: true
+    additionalProperties: true
+  storage:
+    type: object
+    properties:
+      cache_dir:
+        type: string
+      session_dir:
+        type: string
+      history_dir:
+        type: string
+    additionalProperties: true
+  http:
+    type: object
+    properties:
+      request_timeout:
+        type: integer
+      verify_ssl:
+        type: boolean
+    additionalProperties: true
+  jira:
+    type: object
+    properties:
+      url:
+        type: string
+      username:
+        type: string
+      api_token:
+        type: string
+      csv_path:
+        type: string
+      cache_db:
+        type: string
+      graph_db:
+        type: string
+      graph_cypher_path:
+        type: string
+      csv_delimiter:
+        type: string
+      csv_encoding:
+        type: string
+      timeline_days:
+        type: integer
+      embed_model:
+        type: string
+      use_hybrid_search:
+        type: boolean
+      use_graph:
+        type: boolean
+      cache_refresh:
+        type: boolean
+    additionalProperties: true
+  infosite:
+    type: object
+    properties:
+      enabled:
+        type: boolean
+      title:
+        type: string
+      output_base_dir:
+        type: string
+      domain:
+        type: string
+    additionalProperties: true
+  apps:
+    type: object
+    properties:
+      kicli:
+        type: object
+        properties:
+          workspace_root:
+            type: string
+          prompt_history_dir:
+            type: string
+          context:
+            type: object
+            properties:
+              max_files:
+                type: integer
+              max_size_mb:
+                type: number
+              relevance_threshold:
+                type: number
+              cache_enabled:
+                type: boolean
+              cache_ttl_hours:
+                type: integer
+              cache_max_size_mb:
+                type: number
+              ignore_patterns:
+                type: string
+            additionalProperties: true
+          diff:
+            type: object
+            properties:
+              context_lines:
+                type: integer
+              format:
+                type: string
+              highlight_syntax:
+                type: boolean
+              auto_apply_threshold:
+                type: number
+              max_file_size_kb:
+                type: integer
+            additionalProperties: true
+        additionalProperties: true
+      ki_knowledge:
+        type: object
+        properties:
+          api_url:
+            type: string
+          django:
+            type: object
+            properties:
+              db_path:
+                type: string
+              secret_key:
+                type: string
+              debug:
+                type: boolean
+              allowed_hosts:
+                type: array
+                items:
+                  type: string
+              wagtail_admin_base_url:
+                type: string
+            additionalProperties: true
+        additionalProperties: true
+    additionalProperties: true
+  ki:
+    type: object
+    additionalProperties: true
+  ollama:
+    type: object
+    additionalProperties: true
+  openai:
+    type: object
+    additionalProperties: true
+  kicli:
+    type: object
+    additionalProperties: true
+  context:
+    type: object
+    additionalProperties: true
+  diff:
+    type: object
+    additionalProperties: true
+  creds:
+    type: object
+    additionalProperties: true
+additionalProperties: true

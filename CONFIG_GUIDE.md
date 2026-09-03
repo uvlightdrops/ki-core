@@ -2,7 +2,7 @@
 
 ## Overview
 
-`ki-core` resolves configuration in layers and exposes the result through the typed `Config` dataclass.
+`ki-core` resolves configuration in layers, validates the merged YAML against a schema, and exposes the result through the typed `Config` dataclass.
 
 The merge model is:
 
@@ -16,6 +16,26 @@ The merge model is:
 Later layers win.
 
 Credentials remain separate in `creds.yaml` and are merged by `ki-core` on top of the YAML config for secret-bearing fields.
+
+The schema source of truth lives at:
+
+```text
+ki-core/schema/config.schema.yaml
+```
+
+The canonical YAML sections are:
+
+```text
+llm
+knowledge
+storage
+http
+jira
+infosite
+apps
+```
+
+Legacy root sections such as `ki`, `openai`, `ollama`, `kicli`, `context`, and `diff` are still accepted as compatibility input, but new config should use the canonical structure.
 
 ## Base config search order
 
@@ -225,6 +245,8 @@ In both cases, sibling layered config under `config/` is included automatically.
 
 ## Notes
 
+- The schema defines the YAML contract.
+- `Config` is a typed projection of the validated merged config.
 - `Config` still exposes flat Python attributes like `config.kicli_cache_dir`.
 - YAML may use sectioned keys like `kicli.cache_dir`.
 - Legacy top-level keys like `kicli_cache_dir` are still read for compatibility.
