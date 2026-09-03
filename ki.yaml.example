@@ -1,65 +1,115 @@
-# Unified configuration for the ki ecosystem
-# Shared by: ki-core, ki-knowledge, kicli-code-assist
+# KI Ecosystem Configuration (ki-core + kicli-code-assist)
 # 
+# Schema-based config generation with layered resolution:
+# 1. Environment variables (KI_CFG_* prefix)
+# 2. Runtime files (config/runtime/runtime.yaml)
+# 3. Stages (config/stages/*.yaml)
+# 4. Profiles (config/profiles/*.yaml)
+# 5. Defaults (config/defaults/*.yaml)
+# 6. Main config (ki.yaml)
+#
 # Credentials (api_key, base_url) should go in creds.yaml for security
-# This file contains non-sensitive configuration
+# This file contains non-sensitive defaults and application settings
 
-# LLM Provider: Company KI Server
-ki:
-  base_url: ""      # Set in creds.yaml
-  api_key: ""       # Set in creds.yaml
-  model: "google/gemma-4-26B-A4B-it"
-  endpoint: ""      # Optional: explicit endpoint path
+# LLM Provider Configuration
+llm:
+  default_provider: "ki"  # Options: ki, openai, ollama
+  providers:
+    # Company KI Server
+    ki:
+      base_url: "https://api.example.com/v1"    # Set in creds.yaml
+      api_key: ""                                 # Set in creds.yaml
+      model: "google/gemma-4-26B-A4B-it"
+      endpoint: ""  # Optional: explicit endpoint path
 
-# LLM Provider: Ollama (local inference)
-ollama:
-  base_url: "http://localhost:11434"
-  model: "llama3.2"
+    # Ollama (local inference)
+    ollama:
+      base_url: "http://localhost:11434"
+      model: "llama3.2"
 
-# LLM Provider: OpenAI (or compatible)
-openai:
-  base_url: "https://api.openai.com/v1"
-  model: "gpt-4"
-  api_key: ""       # Set in creds.yaml
+    # OpenAI or compatible
+    openai:
+      base_url: "https://api.openai.com/v1"
+      model: "gpt-4"
+      api_key: ""  # Set in creds.yaml
 
-# Knowledge base settings
+# Knowledge base and data indexing
 knowledge:
   data_root: ""                    # e.g., ~/dev_data/kicli
   cache_db: ""                     # Optional: custom cache location
   graph_db: ""                     # Optional: custom graph db location
   embed_model: "nomic-embed-text"  # Model for embeddings
+  default_domain: "default"        # Default knowledge domain
+  paths:
+    markdown_root: ""
+    jira_root: ""
+    ontology_root: ""
+    pdf_root: ""
 
-# JIRA integration (optional, for legacy workflows)
+# Storage locations
+storage:
+  cache_dir: "~/.cache/ki"
+  session_dir: "~/.cache/ki/sessions"
+  history_dir: "~/.cache/ki/chat_history"
+
+# JIRA integration (optional)
 jira:
   url: ""
   username: ""
-  api_token: ""    # Set in creds.yaml
+  api_token: ""      # Set in creds.yaml
+  csv_path: ""
+  cache_db: ""
+  graph_db: ""
+  graph_cypher_path: ""
+  csv_delimiter: ","
+  csv_encoding: "utf-8"
+  timeline_days: 30
+  embed_model: "nomic-embed-text"
+  use_hybrid_search: true
+  use_graph: false
+  cache_refresh: false
+
+# Info Site generation
+infosite:
+  enabled: false
+  title: "Project Info"
+  output_base_dir: "~/dev_data/infosite"
+  domain: "default"
 
 # HTTP client settings
 http:
   request_timeout: 30
   verify_ssl: true
 
-# KI CLI / Code Assistant (kicli-code-assist)
-kicli:
-  cache_dir: "~/dev_data/kicli-code-assist"
-  session_dir: "~/dev_data/kicli-code-assist/sessions"
-  chat_history_dir: "~/dev_data/kicli-code-assist/chat_history"
+# Application-specific settings
+apps:
+  kicli:
+    # KI CLI / Code Assistant (kicli-code-assist)
+    workspace_root: ""  # Root for workspace analysis
+    prompt_history_dir: ""  # Prompt history location
 
-# Context System (Phase 2: Intelligent Context)
-context:
-  max_files: 10                    # Maximum number of files to include in context
-  max_size_mb: 5                   # Maximum total context size in MB
-  relevance_threshold: 0.15        # Minimum relevance score (0-1, lower=more inclusive)
-  cache_enabled: true              # Enable context caching
-  cache_ttl_hours: 24              # Cache time-to-live in hours
-  cache_max_size_mb: 50            # Maximum cache size in MB
-  ignore_patterns: "__pycache__,*.pyc,node_modules,.git,.env"  # Patterns to ignore
+    # Context system - intelligent file inclusion
+    context:
+      max_files: 10                    # Max files in context
+      max_size_mb: 5                   # Max total context size (MB)
+      relevance_threshold: 0.15        # Min relevance score (0-1)
+      cache_enabled: true              # Enable caching
+      cache_ttl_hours: 24              # Cache lifetime (hours)
+      cache_max_size_mb: 50            # Max cache size (MB)
+      ignore_patterns: "__pycache__,*.pyc,node_modules,.git,.env"
 
-# Diff Engine (Phase 3: Diff & Change Management)
-diff:
-  context_lines: 3                 # Number of context lines in diffs
-  format: "unified"                # Diff format: unified, side-by-side, inline
-  highlight_syntax: true           # Syntax highlighting in diff viewer
-  auto_apply_threshold: 0.8        # Confidence threshold for auto-applying changes
-  max_file_size_kb: 100            # Maximum file size to diff
+    # Diff engine - change visualization
+    diff:
+      context_lines: 3                 # Context lines around changes
+      format: "unified"                # Format: unified, context, side-by-side
+      highlight_syntax: true           # Syntax highlighting
+      auto_apply_threshold: 0.8        # Auto-apply confidence threshold (0-1)
+      max_file_size_kb: 100            # Max file size for diffing (KB)
+
+  # Other apps can define their settings here
+  # ki_knowledge:
+  #   api_url: ""
+  #   django:
+  #     db_path: ""
+  #     secret_key: ""
+  #     debug: false

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Simple ki-core CLI for testing providers."""
+"""Simple ki-core CLI for testing providers and config management."""
 
 import sys
 from pathlib import Path
@@ -24,6 +24,8 @@ def main():
         run_ollama_chat()
     elif command == "openai":
         run_openai_chat()
+    elif command == "config-skeleton":
+        run_config_skeleton()
     elif command == "help":
         print_help()
     else:
@@ -36,19 +38,41 @@ def print_help():
     """Print help message."""
     print(
         """
-ki-core Chat CLI
+ki-core CLI
 
 Usage:
-  ki-chat mock              # Test with mock provider
-  ki-chat ollama            # Chat with Ollama (local)
-  ki-chat openai            # Chat with OpenAI API
-  ki-chat help              # Show this help
+  ki-chat mock                          # Test with mock provider
+  ki-chat ollama                        # Chat with Ollama (local)
+  ki-chat openai                        # Chat with OpenAI API
+  ki-chat config-skeleton [output_path] # Generate config skeleton with defaults
+  ki-chat help                          # Show this help
 
 Examples:
   OLLAMA_BASE_URL=http://localhost:11434 ki-chat ollama
   KI_API_KEY=sk-... KI_BASE_URL=https://api.openai.com/v1 ki-chat openai
+  ki-chat config-skeleton ./ki.yaml     # Generate default config
 """
     )
+
+
+def run_config_skeleton():
+    """Generate config skeleton with defaults."""
+    from ki_core.schema_manager import generate_config_skeleton, get_schema_path
+
+    output_path = sys.argv[2] if len(sys.argv) > 2 else "ki.yaml"
+    
+    try:
+        base_schema = get_schema_path()
+        
+        # Try to load kicli-code-assist schema if available
+        kicli_schema = Path.cwd() / "schema" / "kicli.schema.yaml"
+        additional = [kicli_schema] if kicli_schema.exists() else None
+        
+        generate_config_skeleton(base_schema, output_path, additional)
+        print(f"✅ Config skeleton generated: {output_path}")
+    except Exception as e:
+        print(f"❌ Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 def run_mock_chat():
