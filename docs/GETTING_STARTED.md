@@ -17,11 +17,16 @@ pip install -e .
 
 ## Quick config setup
 
-Create a base config:
+Generate a base config skeleton with all schema-defined defaults filled in:
 
 ```bash
-cp ki.yaml.example ki.yaml
+ki-chat config-skeleton ./ki.yaml
 ```
+
+App-specific settings (e.g. kicli-code-assist, ki-knowledge) are merged in
+automatically if that app's own `schema/*.schema.yaml` is discoverable -
+each app also provides its own thin wrapper command for this (e.g.
+`kicli-assist config init`).
 
 Optional credentials:
 

@@ -300,7 +300,8 @@ that already knows its own schema, e.g. `kicli-assist config init`).
 
 ## Examples
 
-See `ki.yaml.example` for a complete working example with all options documented.
+Generate a config skeleton from the schema (see "Config Generation" above)
+to see a complete, always-up-to-date example with all options documented.
 
 ## Troubleshooting
 
