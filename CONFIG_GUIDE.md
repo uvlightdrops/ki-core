@@ -240,48 +240,42 @@ llm.providers.ki.base_url: 'extra fields not permitted'
 ### Load config from YAML
 
 ```python
-from ki_core import Config
+from ki_core import load_config
 
 # Auto-discover ki.yaml in standard locations
-config = Config.from_yaml()
+config = load_config()
 
 # Or specify explicit path
-config = Config.from_yaml("./config/dev.yaml")
-
-# Or load from environment variables only
-config = Config.from_env()
+config = load_config("./config/dev.yaml")
 ```
+
+`load_config()` always also reads environment variables (`KI_CFG_*` prefix)
+and merges in schema defaults - there is no separate "env only" mode.
 
 ### Access config values
 
 ```python
-# Typed access - all values are validated
-print(config.ki_base_url)
-print(config.context_max_files)  # int
-print(config.context_cache_enabled)  # bool
+# Dotted-path access - all values are schema-validated, with schema
+# defaults filled in when a key isn't set explicitly
+print(config.get_path("llm.providers.ki.base_url"))
+print(config.get_path("apps.kicli.context.max_files"))  # int
+print(config.get_path("apps.kicli.context.cache_enabled"))  # bool
+
+# It's still a plain dict too:
+print(config.get("llm", {}))
 ```
 
-All fields are type-safe. See the `Config` dataclass for all available fields.
+`load_config()` returns a `ConfigDict` (plain dict + `get_path()` helper).
+ki-core intentionally has no fat, cross-app config dataclass - each app
+should define its own thin, typed accessor on top of `ConfigDict` for the
+settings it owns (see e.g. `kicli_code_assist.app_config.AppConfig`).
 
-## Migration from Legacy Format
+## Legacy Flat Format Removed
 
-**Old (legacy) format** - still supported for backward compatibility:
-
-```yaml
-# ❌ Don't use these anymore
-ki:
-  base_url: ""
-  api_key: ""
-  model: ""
-
-context:
-  max_files: 10
-
-diff:
-  context_lines: 3
-```
-
-**New (canonical) format** - use this:
+Older versions accepted a flat legacy format (`ki:`, `ollama:`, `openai:`,
+`kicli:`, `context:`, `diff:` as top-level keys). This has been **removed**
+- these keys are no longer part of the schema and are ignored. Use the
+canonical nested format only:
 
 ```yaml
 # ✅ Use this format
@@ -300,14 +294,9 @@ apps:
       context_lines: 3
 ```
 
-Both work currently, but legacy format will be removed in a future version. Migrate existing configs using:
-
-```bash
-# Generate new config skeleton
-ki-chat config-skeleton ./ki-new.yaml
-
-# Manually migrate custom values
-```
+Migrate existing configs by regenerating a skeleton and porting values over
+(each app provides its own thin wrapper around `yaml-cfg config skeleton`
+that already knows its own schema, e.g. `kicli-assist config init`).
 
 ## Examples
 

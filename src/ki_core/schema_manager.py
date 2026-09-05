@@ -46,18 +46,8 @@ def generate_config_skeleton(
 
 
 def get_schema_path() -> Path:
-    """Get path to ki-core base schema.
-    
+    """Get path to ki-core's base schema (single source of truth).
+
     The schema is packaged with ki-core as package data.
     """
-    schema_path = Path(__file__).resolve().parent / "schema" / "config.schema.yaml"
-    if schema_path.exists():
-        return schema_path
-    
-    # Fallback for source tree
-    fallback = Path(__file__).resolve().parents[2] / "schema" / "config.schema.yaml"
-    if fallback.exists():
-        return fallback
-    
-    # Default to package location
-    return schema_path
+    return Path(__file__).resolve().parent / "schema" / "config.schema.yaml"

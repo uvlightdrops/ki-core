@@ -1,5 +1,18 @@
 # Config schema review
 
+**Status: Implemented.** `knowledge`, `jira`, `infosite`, and
+`apps.ki_knowledge.*` have been moved out of ki-core into
+`ki-knowledge/schema/ki_knowledge.schema.yaml`; `security`, `prompts` and
+`storage` have been moved into
+`kicli-code-assist/schema/kicli.schema.yaml`. ki-core's own schema
+(`ki-core/src/ki_core/schema/config.schema.yaml`, the single source of
+truth - the old root-level `ki-core/schema/config.schema.yaml` duplicate
+was removed) now only contains truly generic sections (`llm`, `http`,
+`creds`, `apps` namespace). The `ki_core.Config` dataclass described below
+as a "shared typed projection" has also been removed entirely - each app
+now builds its own thin config accessor on top of `ki_core.load_config()`.
+The rest of this document is kept for historical context.
+
 This document defines the intended naming and scope model for the shared `ki-*` configuration family.
 
 ## Goal
