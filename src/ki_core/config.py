@@ -41,6 +41,20 @@ def _find_yaml_config_path(path: Optional[Union[str, Path]] = None) -> Optional[
     return None
 
 
+def find_config_path(path: Optional[Union[str, Path]] = None) -> Path:
+    """Find the active YAML config file, or a sensible default write target.
+
+    Public wrapper around the same discovery logic used internally by
+    ``load_config()``, for callers (e.g. a TUI settings editor) that need
+    to know exactly which file resolved values came from, or where to
+    write edits back to. Unlike ``_find_yaml_config_path()``, this never
+    returns None: if no existing config file is found, it returns
+    ``Path("ki.yaml")`` in the current directory as the default location
+    a new one would be created at.
+    """
+    return _find_yaml_config_path(path) or Path("ki.yaml")
+
+
 def _find_creds_yaml_path(path: Optional[Union[str, Path]] = None) -> Optional[Path]:
     """Find credentials file (kept separate for security)."""
     if path is not None:
