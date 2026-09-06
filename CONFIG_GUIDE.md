@@ -152,7 +152,7 @@ ki-chat config-skeleton ./ki.yaml
 
 **From kicli-code-assist:**
 ```bash
-kicli-assist config init -o ./ki.yaml
+yaml-cfg config skeleton -o ./ki.yaml
 ```
 
 This generates a complete YAML file with all schema-defined options and their default values.
@@ -294,9 +294,10 @@ apps:
       context_lines: 3
 ```
 
-Migrate existing configs by regenerating a skeleton and porting values over
-(each app provides its own thin wrapper around `yaml-cfg config skeleton`
-that already knows its own schema, e.g. `kicli-assist config init`).
+Migrate existing configs by regenerating a skeleton and porting values over:
+`yaml-cfg config skeleton` auto-discovers ki-core's base schema plus any
+`./schema/*.schema.yaml` in the current app's directory, so it can be run
+as-is from within any app repo without passing schema paths explicitly.
 
 ## Examples
 

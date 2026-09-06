@@ -26,7 +26,7 @@ ki-chat config-skeleton ./ki.yaml
 App-specific settings (e.g. kicli-code-assist, ki-knowledge) are merged in
 automatically if that app's own `schema/*.schema.yaml` is discoverable -
 each app also provides its own thin wrapper command for this (e.g.
-`kicli-assist config init`).
+`yaml-cfg config skeleton`).
 
 Optional credentials:
 
