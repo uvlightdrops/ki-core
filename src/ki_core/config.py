@@ -33,16 +33,7 @@ def _find_yaml_config_path(path: Optional[Union[str, Path]] = None) -> Optional[
 
     candidates = [
         Path("ki.yaml"),
-        Path("kicli.yaml"),
-        Path("config.yaml"),
-        Path(".ki.yaml"),
-        Path(".kicli.yaml"),
-        Path("config") / "ki.yaml",
-        Path("config") / "config.yaml",
-        Path("config") / "dev.yaml",
-        Path("config") / "prod.yaml",
-        Path.home() / ".config" / "ki" / "config.yaml",
-        Path.home() / ".config" / "kicli" / "config.yaml",
+        Path.home() / ".config" / "ki" / "ki.yaml",
     ]
     for candidate in candidates:
         if candidate.exists():
@@ -60,9 +51,7 @@ def _find_creds_yaml_path(path: Optional[Union[str, Path]] = None) -> Optional[P
 
     candidates = [
         Path("creds.yaml"),
-        Path("config") / "creds.yaml",
         Path.home() / ".config" / "ki" / "creds.yaml",
-        Path.home() / ".config" / "kicli" / "creds.yaml",
     ]
     for candidate in candidates:
         if candidate.exists():
