@@ -20,6 +20,7 @@ class OllamaClient(AIClient):
         base_url: str = "http://localhost:11434",
         model: Optional[str] = None,
         timeout: int = 300,
+        verify: bool | str = True,
     ) -> None:
         """
         Initialize Ollama client.
@@ -28,10 +29,15 @@ class OllamaClient(AIClient):
             base_url: Ollama server URL
             model: Default model name (e.g., "llama2", "mistral", "neural-chat")
             timeout: Request timeout in seconds (local inference can be slow)
+            verify: TLS verification - True (default), False (disable), or a
+                path to a custom CA bundle/cert file. Maps to the
+                `http.verify_ssl` config field. Irrelevant for plain http://
+                URLs (the common case for local Ollama).
         """
         self.base_url = base_url.rstrip("/")
         self.default_model = model or "llama2"
         self.timeout = timeout
+        self.verify = verify
 
     def chat(self, request: ChatRequest) -> ChatResponse:
         """Send a chat request to Ollama."""
@@ -54,8 +60,14 @@ class OllamaClient(AIClient):
                 f"{self.base_url}/api/chat",
                 json=payload,
                 timeout=self.timeout,
+                verify=self.verify,
             )
             response.raise_for_status()
+        except requests.exceptions.SSLError as e:
+            raise ProviderError(
+                f"TLS certificate verification failed for {self.base_url}: {e}. "
+                f"Run `ki-chat cert-diagnose {self.base_url}` for details."
+            )
         except requests.exceptions.Timeout as e:
             raise TimeoutError(f"Ollama request timed out: {e}")
         except requests.exceptions.RequestException as e:
@@ -90,9 +102,15 @@ class OllamaClient(AIClient):
                 f"{self.base_url}/api/chat",
                 json=payload,
                 timeout=self.timeout,
+                verify=self.verify,
                 stream=True,
             )
             response.raise_for_status()
+        except requests.exceptions.SSLError as e:
+            raise ProviderError(
+                f"TLS certificate verification failed for {self.base_url}: {e}. "
+                f"Run `ki-chat cert-diagnose {self.base_url}` for details."
+            )
         except requests.exceptions.Timeout as e:
             raise TimeoutError(f"Ollama request timed out: {e}")
         except requests.exceptions.RequestException as e:

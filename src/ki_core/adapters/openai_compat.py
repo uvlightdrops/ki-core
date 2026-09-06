@@ -21,6 +21,7 @@ class OpenAICompatibleClient(AIClient):
         api_key: str,
         model: Optional[str] = None,
         timeout: int = 30,
+        verify: bool | str = True,
     ) -> None:
         """
         Initialize OpenAI-compatible client.
@@ -30,11 +31,16 @@ class OpenAICompatibleClient(AIClient):
             api_key: Authentication token
             model: Default model name
             timeout: Request timeout in seconds
+            verify: TLS verification - True (default, system/certifi CA bundle),
+                False (disable, insecure), or a path to a custom CA bundle/cert
+                file (e.g. for self-signed/internal CAs). Maps to the
+                `http.verify_ssl` config field.
         """
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.default_model = model
         self.timeout = timeout
+        self.verify = verify
 
         if not api_key:
             raise AuthError("api_key is required")
@@ -64,8 +70,14 @@ class OpenAICompatibleClient(AIClient):
                     "Content-Type": "application/json",
                 },
                 timeout=self.timeout,
+                verify=self.verify,
             )
             response.raise_for_status()
+        except requests.exceptions.SSLError as e:
+            raise ProviderError(
+                f"TLS certificate verification failed for {self.base_url}: {e}. "
+                f"Run `ki-chat cert-diagnose {self.base_url}` for details."
+            )
         except requests.exceptions.Timeout as e:
             raise TimeoutError(f"Request timed out: {e}")
         except requests.exceptions.RequestException as e:
@@ -110,9 +122,15 @@ class OpenAICompatibleClient(AIClient):
                     "Content-Type": "application/json",
                 },
                 timeout=self.timeout,
+                verify=self.verify,
                 stream=True,
             )
             response.raise_for_status()
+        except requests.exceptions.SSLError as e:
+            raise ProviderError(
+                f"TLS certificate verification failed for {self.base_url}: {e}. "
+                f"Run `ki-chat cert-diagnose {self.base_url}` for details."
+            )
         except requests.exceptions.Timeout as e:
             raise TimeoutError(f"Request timed out: {e}")
         except requests.exceptions.RequestException as e:

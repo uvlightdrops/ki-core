@@ -26,6 +26,8 @@ def main():
         run_openai_chat()
     elif command == "config-skeleton":
         run_config_skeleton()
+    elif command == "cert-diagnose":
+        run_cert_diagnose()
     elif command == "help":
         print_help()
     else:
@@ -45,12 +47,15 @@ Usage:
   ki-chat ollama                        # Chat with Ollama (local)
   ki-chat openai                        # Chat with OpenAI API
   ki-chat config-skeleton [output_path] # Generate config skeleton with defaults
+  ki-chat cert-diagnose <host[:port]>   # Show TLS certificate details for a host
   ki-chat help                          # Show this help
 
 Examples:
   OLLAMA_BASE_URL=http://localhost:11434 ki-chat ollama
   KI_API_KEY=sk-... KI_BASE_URL=https://api.openai.com/v1 ki-chat openai
   ki-chat config-skeleton ./ki.yaml     # Generate default config
+  ki-chat cert-diagnose api.openai.com  # Diagnose TLS cert for a provider host
+  ki-chat cert-diagnose https://internal.example.com:8443
 """
     )
 
@@ -72,6 +77,21 @@ def run_config_skeleton():
         print(f"✅ Config skeleton generated: {output_path}")
     except Exception as e:
         print(f"❌ Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def run_cert_diagnose():
+    """Show TLS certificate details and trust status for a host."""
+    if len(sys.argv) < 3:
+        print("Usage: ki-chat cert-diagnose <host[:port]|https://host[:port]>")
+        sys.exit(1)
+
+    from ki_core.cert_diagnostics import diagnose_certificate
+
+    target = sys.argv[2]
+    result = diagnose_certificate(target)
+    print(result.render())
+    if result.connect_error or not result.verified:
         sys.exit(1)
 
 
