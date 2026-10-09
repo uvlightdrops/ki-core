@@ -13,6 +13,7 @@ returned by load_config().
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any, Optional, Union
 
@@ -22,6 +23,14 @@ from yaml_cfg_wizard.schema_utils import merge_schemas, scaffold_skeleton_from_s
 
 
 load_dotenv(find_dotenv())
+
+# One stage (dev-lokal, prod, ...) and at most one profile are active per host:
+# env var first, then a marker file in the layer directory (same marker
+# convention as `yaml-cfg profile set`). Nothing selected -> layer skipped.
+STAGE_ENV = "KI_STAGE"
+PROFILE_ENV = "KI_PROFILE"
+ACTIVE_STAGE_MARKER = ".active_stage"
+ACTIVE_PROFILE_MARKER = ".active_profile"
 
 
 def _find_yaml_config_path(path: Optional[Union[str, Path]] = None) -> Optional[Path]:
@@ -106,13 +115,51 @@ def get_merged_schemas(start: Optional[Path] = None) -> list[Path]:
     return [_schema_file(), *find_app_schemas(start)]
 
 
+def _layered_config_dir(path: Optional[Union[str, Path]] = None) -> Path:
+    config_path = _find_yaml_config_path(path)
+    config_dir = config_path.resolve().parent if config_path else Path.cwd()
+    return config_dir / "config"
+
+
+def _active_name(directory: Path, env_var: str, marker: str) -> Optional[str]:
+    name = os.getenv(env_var, "").strip()
+    if not name and (directory / marker).is_file():
+        name = (directory / marker).read_text(encoding="utf-8").strip()
+    return name or None
+
+
+def _layer_file(directory: Path, env_var: str, marker: str) -> Optional[Path]:
+    """The selected ``<name>.yaml`` in ``directory``; error if the name does not exist."""
+    name = _active_name(directory, env_var, marker)
+    if not name:
+        return None
+    for ext in (".yaml", ".yml"):
+        candidate = directory / f"{name}{ext}"
+        if candidate.is_file():
+            return candidate
+    available = sorted(f.stem for f in directory.glob("*.y*ml")) if directory.is_dir() else []
+    raise ValueError(
+        f"{env_var} / {directory / marker}: '{name}' not found in {directory} (available: {', '.join(available) or '-'})"
+    )
+
+
+def active_layers(path: Optional[Union[str, Path]] = None) -> dict[str, Optional[str]]:
+    """Names of the active stage and profile (``None`` if not selected)."""
+    layered = _layered_config_dir(path)
+    return {
+        "stage": _active_name(layered / "stages", STAGE_ENV, ACTIVE_STAGE_MARKER),
+        "profile": _active_name(layered / "profiles", PROFILE_ENV, ACTIVE_PROFILE_MARKER),
+    }
+
+
 def _resolve_config(path: Optional[Union[str, Path]] = None) -> dict[str, Any]:
     """Resolve complete config from all sources using ConfigResolver."""
     config_path = _find_yaml_config_path(path)
     creds_path = _find_creds_yaml_path(path)
 
-    config_dir = config_path.resolve().parent if config_path else Path.cwd()
-    layered_config_dir = config_dir / "config"
+    layered_config_dir = _layered_config_dir(path)
+    stage_file = _layer_file(layered_config_dir / "stages", STAGE_ENV, ACTIVE_STAGE_MARKER)
+    profile_file = _layer_file(layered_config_dir / "profiles", PROFILE_ENV, ACTIVE_PROFILE_MARKER)
 
     # Get all schemas for validation (base + app-specific)
     schemas = get_merged_schemas()
@@ -120,8 +167,8 @@ def _resolve_config(path: Optional[Union[str, Path]] = None) -> dict[str, Any]:
     resolver = ConfigResolver(
         defaults=[config_path] if config_path else [],
         defaults_dir=layered_config_dir / "defaults" if (layered_config_dir / "defaults").exists() else None,
-        profiles_dir=layered_config_dir / "profiles" if (layered_config_dir / "profiles").exists() else None,
-        stages_dir=layered_config_dir / "stages" if (layered_config_dir / "stages").exists() else None,
+        profiles=[profile_file] if profile_file else [],
+        stage=[stage_file] if stage_file else [],
         runtime_file=(layered_config_dir / "runtime" / "runtime.yaml")
         if (layered_config_dir / "runtime" / "runtime.yaml").exists()
         else None,
@@ -170,14 +217,16 @@ def load_config(path: Optional[Union[str, Path]] = None) -> ConfigDict:
     """Load and resolve the full config from YAML files + environment variables.
 
     Resolution order (highest to lowest priority):
-    1. Environment variables (KI_CFG_* prefix)
-    2. Runtime files (config/runtime/runtime.yaml)
-    3. Stages (config/stages/*.yaml)
-    4. Profiles (config/profiles/*.yaml)
-    5. Defaults (config/defaults/*.yaml)
+    1. creds.yaml (deep-merged on top for secrets)
+    2. Environment variables (KI_CFG_* prefix, ``__`` for nesting)
+    3. Runtime file (config/runtime/runtime.yaml) - host-local overrides
+    4. Active stage (config/stages/<KI_STAGE or stages/.active_stage>.yaml)
+    5. Active profile (config/profiles/<KI_PROFILE or profiles/.active_profile>.yaml)
     6. Main config (ki.yaml)
-    7. creds.yaml (deep-merged on top for secrets)
+    7. Defaults (config/defaults/*.yaml)
     8. Schema defaults (ki-core base schema + app schemas)
+
+    Only the selected stage/profile file is loaded, never all of them.
 
     Returns a plain, JSON-schema-validated dict (ConfigDict) - there is no
     hardcoded dataclass shape. Apps should build their own thin, typed
