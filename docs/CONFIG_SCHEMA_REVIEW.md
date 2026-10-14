@@ -1,5 +1,11 @@
 # Config schema review
 
+Canonical YAML engineering and future ideas:
+[YAML_CONFIG_CONCEPTS.md](../../yaml_cfg_wizard/doc/YAML_CONFIG_CONCEPTS.md).
+Current operation:
+[YAML_CONFIG_SYSADMIN.md](../../yaml_cfg_wizard/doc/YAML_CONFIG_SYSADMIN.md).
+The historical review below is retained as such, not a current loader contract.
+
 **Status: Implemented.** `knowledge`, `jira`, `infosite`, and
 `apps.ki_knowledge.*` have been moved out of ki-core into
 `ki-knowledge/schema/ki_knowledge.schema.yaml`; `security`, `prompts` and

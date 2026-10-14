@@ -16,7 +16,7 @@ Provides unified LLM provider access, configuration management, and CLI tools.
 ## Documentation
 
 - **[Getting Started](docs/GETTING_STARTED.md)** – Quick start with any provider
-- **[Configuration Guide](CONFIG_GUIDE.md)** – layered config, credentials, environment variables
+- **[Configuration Guide](CONFIG_GUIDE.md)** – links to canonical YAML operation and design
 - **[Provider Reference](#providers)** – Details on each provider
 
 
