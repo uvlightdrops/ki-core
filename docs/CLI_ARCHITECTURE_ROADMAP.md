@@ -85,9 +85,15 @@ ki-knowledge config resolve ...     # (future)
 ```
 
 **Implementation:**
-1. Extract `yaml_cfg_wizard.cli` command logic into `ki_core/commands/config.py`
-2. Make yaml-cfg a thin wrapper around ki-core (or consolidate)
-3. Each app inherits/reexports config commands
+1. Create `ki_core/commands/config.py` wrapping yaml-cfg ConfigResolver
+2. Create `ki_core/commands/profile.py` for profile management
+3. Create `ki_core/commands/stage.py` for stage management
+4. Both yaml-cfg and ki-chat delegate to these implementations
+5. Each downstream app reuses via delegation
+
+**Key insight:** yaml-cfg stays independent (no ki-core dependency),
+but ki-core owns the *shared* command implementations that both
+yaml-cfg and app CLIs can reuse.
 
 ---
 
@@ -166,6 +172,34 @@ NEVER: ki-core/commands → app code
 
 ## References
 
-- YAML_CONFIG_SYSADMIN.md - Config resolution order
+- YAML_CONFIG_SYSADMIN.md - Config resolution order  
 - ki_core/commands/ - Shared implementations
 - Each app's cli.py - Delegation patterns
+
+## Dependency Architecture
+
+```
+yaml-cfg (independent generic YAML tool)
+  ├─ Library: ConfigResolver, merge_schemas, scaffold_skeleton
+  └─ CLI: config resolve/skeleton/verify, profile, stage
+  └─ NO dependency on ki-core
+  
+          ↓ (ki-core imports yaml-cfg)
+          
+ki-core (orchestrator for all KI apps)
+  ├─ Library: load_config(), active_layers(), LLM clients
+  ├─ Commands: doctor (✅), config (Phase 2), profile (Phase 2), stage (Phase 2)
+  │   └─ These wrap yaml-cfg library components
+  └─ CLI: ki-chat (delegates to commands)
+
+          ↓ (apps import ki-core)
+          
+App CLIs (kicli-assist, ki-knowledge, ia3simworld, ...)
+  ├─ App-specific: tui, tmux, chat, web-ui, simulator, etc.
+  └─ Shared config: all delegate to ki_core.commands
+  
+Why this direction:
+  • yaml-cfg can be used independently
+  • ki-core orchestrates for KI specifically
+  • Apps don't reinvent the wheel
+  • Clear single source of truth per layer
