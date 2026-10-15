@@ -1,6 +1,6 @@
 # CLI Architecture Roadmap
 
-**Status:** Phase 1 (✅ Complete)  
+**Status:** Phase 2 (🔄 In Progress)  
 **Goal:** Eliminate CLI duplication across all projects
 
 ---
@@ -74,26 +74,51 @@ kicli-assist doctor
 
 ---
 
-## Phase 2: Centralize config/profile/stage (Planned)
+## Phase 2: Centralize config/profile/stage (🔄 IN PROGRESS)
 
 Move from `yaml-cfg config resolve ...` to:
 ```bash
 # Unified across all apps:
-ki-chat config resolve ...          # via ki-core CLI
-kicli-assist config resolve ...     # via app wrapper
-ki-knowledge config resolve ...     # (future)
+ki-chat config resolve ...          # via ki-core CLI (✅ DONE)
+kicli-assist config resolve ...     # via app wrapper (✅ DONE)
+ki-knowledge config resolve ...     # (planned)
 ```
 
-**Implementation:**
-1. Create `ki_core/commands/config.py` wrapping yaml-cfg ConfigResolver
-2. Create `ki_core/commands/profile.py` for profile management
-3. Create `ki_core/commands/stage.py` for stage management
-4. Both yaml-cfg and ki-chat delegate to these implementations
-5. Each downstream app reuses via delegation
+**Completed:**
+- ✅ `ki_core/commands/config.py` - resolve, verify, skeleton, show
+- ✅ `ki_core/commands/profile.py` - list, set, active
+- ✅ `ki_core/commands/stage.py` - list, set, active
+- ✅ `ki_core/cli.py` updated with config/profile/stage commands
+- ✅ `kicli-assist cli.py` delegates config/profile/stage to ki-core
+- ✅ `kicli-assist cli_commands.yaml` includes config/profile/stage groups
 
-**Key insight:** yaml-cfg stays independent (no ki-core dependency),
-but ki-core owns the *shared* command implementations that both
-yaml-cfg and app CLIs can reuse.
+**Remaining (Phase 2b-c):**
+- Update yaml-cfg to use ki_core.commands (optional: keep as thin wrapper)
+- Update ki-knowledge team on roadmap
+- Update ia3simworld team on roadmap
+- Propagate documentation to all projects
+
+**Implementation pattern verified:**
+```python
+# Base implementation in ki_core/commands/
+def run_config(echo_fn=None, subcommand="resolve", **kwargs):
+    if echo_fn is None:
+        echo_fn = print
+    # wrapped logic here
+    
+# App wrapper
+def run_config(**kwargs):
+    from ki_core.commands import run_config as base_config
+    base_config(echo_fn=click.echo, **kwargs)
+```
+
+**Test:**
+```bash
+ki-chat config resolve              # Shows full resolved config
+kicli-assist config resolve -q      # Quiet mode works
+kicli-assist profile list            # Profile management
+kicli-assist stage set dev           # Stage management
+```
 
 ---
 
