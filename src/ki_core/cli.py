@@ -7,6 +7,7 @@ from pathlib import Path
 from ki_core.adapters.mock import MockAIClient
 from ki_core.adapters.ollama import OllamaClient
 from ki_core.adapters.openai_compat import OpenAICompatibleClient
+from ki_core.commands import run_doctor as _run_doctor
 from ki_core.core.models import ChatRequest, Message, Role
 
 
@@ -28,6 +29,8 @@ def main():
         run_config_skeleton()
     elif command == "cert-diagnose":
         run_cert_diagnose()
+    elif command == "doctor":
+        run_doctor()
     elif command == "help":
         print_help()
     else:
@@ -40,17 +43,19 @@ def print_help():
     """Print help message."""
     print(
         """
-ki-core CLI
+ki-core CLI (shared base for all apps)
 
 Usage:
   ki-chat mock                          # Test with mock provider
   ki-chat ollama                        # Chat with Ollama (local)
   ki-chat openai                        # Chat with OpenAI API
+  ki-chat doctor                        # Show config resolution chain & defaults
   ki-chat config-skeleton [output_path] # Generate config skeleton with defaults
   ki-chat cert-diagnose <host[:port]>   # Show TLS certificate details for a host
   ki-chat help                          # Show this help
 
 Examples:
+  ki-chat doctor                        # Show where defaults come from
   OLLAMA_BASE_URL=http://localhost:11434 ki-chat ollama
   KI_API_KEY=sk-... KI_BASE_URL=https://api.openai.com/v1 ki-chat openai
   ki-chat config-skeleton ./ki.yaml     # Generate default config
@@ -78,6 +83,11 @@ def run_config_skeleton():
     except Exception as e:
         print(f"❌ Error: {e}", file=sys.stderr)
         sys.exit(1)
+
+
+def run_doctor():
+    """Show config resolution chain and where defaults come from."""
+    _run_doctor(echo_fn=print, show_config_path=False)
 
 
 def run_cert_diagnose():
