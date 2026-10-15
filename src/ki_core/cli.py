@@ -7,7 +7,19 @@ from pathlib import Path
 from ki_core.adapters.mock import MockAIClient
 from ki_core.adapters.ollama import OllamaClient
 from ki_core.adapters.openai_compat import OpenAICompatibleClient
-from ki_core.commands import run_doctor as _run_doctor
+from ki_core.commands import (
+    run_doctor as _run_doctor,
+    run_resolve,
+    run_verify,
+    run_skeleton,
+    run_show,
+    run_profile_list,
+    run_profile_set,
+    run_profile_active,
+    run_stage_list,
+    run_stage_set,
+    run_stage_active,
+)
 from ki_core.core.models import ChatRequest, Message, Role
 
 
@@ -31,6 +43,12 @@ def main():
         run_cert_diagnose()
     elif command == "doctor":
         run_doctor()
+    elif command == "config":
+        run_config_command()
+    elif command == "profile":
+        run_profile_command()
+    elif command == "stage":
+        run_stage_command()
     elif command == "help":
         print_help()
     else:
@@ -52,6 +70,20 @@ Usage:
   ki-chat doctor                        # Show config resolution chain & defaults
   ki-chat config-skeleton [output_path] # Generate config skeleton with defaults
   ki-chat cert-diagnose <host[:port]>   # Show TLS certificate details for a host
+  
+  ki-chat config resolve                # Resolve and display full config
+  ki-chat config verify                 # Verify config against schema
+  ki-chat config skeleton [output]      # Generate config skeleton
+  ki-chat config show [key]             # Show config or specific key
+  
+  ki-chat profile list                  # List available profiles
+  ki-chat profile set <name>            # Set active profile
+  ki-chat profile active                # Show active profile
+  
+  ki-chat stage list                    # List available stages
+  ki-chat stage set <name>              # Set active stage
+  ki-chat stage active                  # Show active stage
+  
   ki-chat help                          # Show this help
 
 Examples:
@@ -59,8 +91,10 @@ Examples:
   OLLAMA_BASE_URL=http://localhost:11434 ki-chat ollama
   KI_API_KEY=sk-... KI_BASE_URL=https://api.openai.com/v1 ki-chat openai
   ki-chat config-skeleton ./ki.yaml     # Generate default config
-  ki-chat cert-diagnose api.openai.com  # Diagnose TLS cert for a provider host
-  ki-chat cert-diagnose https://internal.example.com:8443
+  ki-chat config resolve                # Show full resolved config
+  ki-chat profile list                  # See all profiles
+  ki-chat profile set dev               # Activate dev profile
+  ki-chat stage list                    # See all stages
 """
     )
 
@@ -88,6 +122,89 @@ def run_config_skeleton():
 def run_doctor():
     """Show config resolution chain and where defaults come from."""
     _run_doctor(echo_fn=print, show_config_path=False)
+
+
+def run_config_command():
+    """Handle config subcommands."""
+    if len(sys.argv) < 3:
+        print("Config subcommands: resolve, verify, skeleton, show")
+        sys.exit(1)
+    
+    subcommand = sys.argv[2]
+    
+    try:
+        if subcommand == "resolve":
+            run_resolve(echo_fn=print)
+        elif subcommand == "verify":
+            config_file = sys.argv[3] if len(sys.argv) > 3 else None
+            schema_file = sys.argv[4] if len(sys.argv) > 4 else None
+            run_verify(echo_fn=print, config_file=config_file, schema_file=schema_file)
+        elif subcommand == "skeleton":
+            output_file = sys.argv[3] if len(sys.argv) > 3 else "ki.yaml"
+            run_skeleton(echo_fn=print, output_file=output_file)
+        elif subcommand == "show":
+            key = sys.argv[3] if len(sys.argv) > 3 else None
+            run_show(echo_fn=print, key=key)
+        else:
+            print(f"Unknown config subcommand: {subcommand}")
+            sys.exit(1)
+    except Exception as e:
+        print(f"❌ Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def run_profile_command():
+    """Handle profile subcommands."""
+    if len(sys.argv) < 3:
+        print("Profile subcommands: list, set <name>, active")
+        sys.exit(1)
+    
+    subcommand = sys.argv[2]
+    
+    try:
+        if subcommand == "list":
+            run_profile_list(echo_fn=print)
+        elif subcommand == "set":
+            if len(sys.argv) < 4:
+                print("Usage: ki-chat profile set <name>")
+                sys.exit(1)
+            profile_name = sys.argv[3]
+            run_profile_set(echo_fn=print, profile_name=profile_name)
+        elif subcommand == "active":
+            run_profile_active(echo_fn=print)
+        else:
+            print(f"Unknown profile subcommand: {subcommand}")
+            sys.exit(1)
+    except Exception as e:
+        print(f"❌ Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def run_stage_command():
+    """Handle stage subcommands."""
+    if len(sys.argv) < 3:
+        print("Stage subcommands: list, set <name>, active")
+        sys.exit(1)
+    
+    subcommand = sys.argv[2]
+    
+    try:
+        if subcommand == "list":
+            run_stage_list(echo_fn=print)
+        elif subcommand == "set":
+            if len(sys.argv) < 4:
+                print("Usage: ki-chat stage set <name>")
+                sys.exit(1)
+            stage_name = sys.argv[3]
+            run_stage_set(echo_fn=print, stage_name=stage_name)
+        elif subcommand == "active":
+            run_stage_active(echo_fn=print)
+        else:
+            print(f"Unknown stage subcommand: {subcommand}")
+            sys.exit(1)
+    except Exception as e:
+        print(f"❌ Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 def run_cert_diagnose():
