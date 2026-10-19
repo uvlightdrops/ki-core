@@ -1,60 +1,185 @@
 $schema: "http://json-schema.org/draft-07/schema#"
-title: "ki-core Base Configuration"
-description: "Generic, app-agnostic base schema for the ki ecosystem. Only sections that are truly shared across all apps belong here - app-specific config lives in each app's own schema (e.g. kicli-code-assist/schema/kicli.schema.yaml, ki-knowledge/schema/ki_knowledge.schema.yaml)."
+title: "KI Ecosystem Unified Configuration"
+description: "Single canonical schema for all KI apps (kicli-code-assist, ki-knowledge, ki-chat, stackctl). Combines LLM, profiles, stages, logging, and app-specific sections."
 type: object
 properties:
+  version:
+    type: string
+    default: "1.0"
+    description: "Config schema version for migration tracking"
+  
+  system:
+    type: object
+    title: "System Settings"
+    properties:
+      config_path:
+        type: string
+        default: ""
+        description: "Path to this config file (for documentation/debugging). Set by loader, not by user."
+      log_level:
+        type: string
+        default: "info"
+        enum: ["debug", "info", "warning", "error"]
+        description: "Global log level (can be overridden per module)"
+    additionalProperties: false
+  
   llm:
     type: object
-    title: "LLM Provider Settings"
+    title: "LLM Integration"
     properties:
-      default_provider:
+      provider:
         type: string
-        default: "mock"
-        description: "Default LLM provider to use when not explicitly selected"
+        default: "auto"
+        description: "Active provider: 'auto' (auto-detect), 'openai', 'ollama', 'ki', or 'mock'. Auto-detect order: openai > ollama > ki > mock"
+      
       providers:
         type: object
+        title: "Provider Configurations"
         properties:
-          ki:
-            type: object
-            properties:
-              base_url:
-                type: string
-                default: ""
-              api_key:
-                type: string
-                default: ""
-              model:
-                type: string
-                default: "google/gemma-4-26B-A4B-it"
-              endpoint:
-                type: string
-                default: ""
-            additionalProperties: true
           openai:
             type: object
             properties:
-              base_url:
-                type: string
-                default: "https://api.openai.com/v1"
               api_key:
                 type: string
                 default: ""
+                description: "OpenAI API key (env: OPENAI_API_KEY). Placeholder: ${OPENAI_API_KEY}"
               model:
                 type: string
-                default: "gpt-4"
-            additionalProperties: true
+                default: "gpt-4o-mini"
+                description: "Model name"
+              base_url:
+                type: string
+                default: "https://api.openai.com/v1"
+            additionalProperties: false
+          
           ollama:
             type: object
             properties:
               base_url:
                 type: string
-                default: "http://localhost:11434"
+                default: ""
+                description: "Ollama server URL (e.g., http://localhost:11434). Empty = disabled"
               model:
                 type: string
                 default: "llama3.2"
-            additionalProperties: true
-        additionalProperties: true
-    additionalProperties: true
+            additionalProperties: false
+          
+          ki:
+            type: object
+            title: "Company KI API"
+            properties:
+              base_url:
+                type: string
+                default: ""
+              api_key:
+                type: string
+                default: ""
+              model:
+                type: string
+                default: ""
+            additionalProperties: false
+        
+        additionalProperties: false
+    
+    additionalProperties: false
+  
+  profiles:
+    type: object
+    title: "Profile System"
+    properties:
+      active:
+        type: string
+        default: "default"
+        description: "Active profile name"
+      
+      definitions:
+        type: object
+        description: "Profile definitions. Each profile can override specific settings."
+        additionalProperties:
+          type: object
+          properties:
+            llm:
+              type: object
+              description: "Override LLM settings for this profile"
+            logging:
+              type: object
+              description: "Override logging settings for this profile"
+          additionalProperties: true
+    
+    additionalProperties: false
+  
+  stages:
+    type: object
+    title: "Stage System (Deployment Environments)"
+    properties:
+      active:
+        type: string
+        default: "dev"
+        description: "Active stage (dev/staging/prod)"
+      
+      definitions:
+        type: object
+        description: "Stage definitions for different deployment environments"
+        additionalProperties:
+          type: object
+          properties:
+            llm:
+              type: object
+              description: "Override LLM settings for this stage"
+            logging:
+              type: object
+              description: "Override logging settings for this stage"
+          additionalProperties: true
+    
+    additionalProperties: false
+  
+  logging:
+    type: object
+    title: "Logging Configuration"
+    properties:
+      level:
+        type: string
+        default: "info"
+        enum: ["debug", "info", "warning", "error"]
+        description: "Global default log level"
+      
+      format:
+        type: string
+        default: "%(asctime)s [%(levelname)s] %(message)s"
+        description: "Log message format (Python logging format string)"
+      
+      modules:
+        type: object
+        title: "Per-Module Log Levels"
+        description: "Override log level for specific modules (e.g., kicli.llm: debug)"
+        additionalProperties:
+          type: string
+          enum: ["debug", "info", "warning", "error"]
+      
+      handlers:
+        type: array
+        title: "Log Handlers"
+        items:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: ["file", "console", "syslog"]
+            path:
+              type: string
+              description: "For file handlers: path to log file"
+            format:
+              type: string
+              description: "Override format for this handler"
+            filters:
+              type: array
+              description: "List of module names to filter (e.g., [kicli.llm]). Empty = all modules"
+              items:
+                type: string
+          additionalProperties: false
+    
+    additionalProperties: false
+  
   http:
     type: object
     title: "HTTP Client Settings"
@@ -62,16 +187,104 @@ properties:
       request_timeout:
         type: integer
         default: 30
+        description: "Default request timeout in seconds"
       verify_ssl:
         type: boolean
         default: true
-    additionalProperties: true
-  creds:
-    type: object
-    description: "Optional separate credentials overlay (creds.yaml), deep-merged over the resolved config."
-    additionalProperties: true
+    additionalProperties: false
+  
   apps:
     type: object
-    description: "Namespace for app-specific configuration. Each app defines its own sub-schema (e.g. apps.kicli.*, apps.ki_knowledge.*) in its own schema file, merged on top of this base schema."
+    title: "App-Specific Configuration"
+    description: "Each app defines its own subsection (apps.kicli, apps.ki_knowledge, etc.)"
+    properties:
+      kicli:
+        type: object
+        title: "kicli-code-assist Configuration"
+        properties:
+          workspace_root:
+            type: string
+            default: ""
+            description: "Root directory for file browser. Empty = current directory"
+          prompt_history_dir:
+            type: string
+            default: ""
+            description: "Directory for storing prompt history"
+          context:
+            type: object
+            properties:
+              max_files:
+                type: integer
+                default: 10
+              max_size_mb:
+                type: integer
+                default: 5
+              relevance_threshold:
+                type: number
+                default: 0.15
+              cache_enabled:
+                type: boolean
+                default: true
+              cache_ttl_hours:
+                type: integer
+                default: 24
+              cache_max_size_mb:
+                type: integer
+                default: 50
+              ignore_patterns:
+                type: string
+                default: "__pycache__,*.pyc,node_modules,.git,.env"
+          diff:
+            type: object
+            properties:
+              context_lines:
+                type: integer
+                default: 3
+              format:
+                type: string
+                default: "unified"
+                enum: ["unified", "context", "split"]
+              highlight_syntax:
+                type: boolean
+                default: true
+              auto_apply_threshold:
+                type: number
+                default: 0.8
+              max_file_size_kb:
+                type: integer
+                default: 100
+        additionalProperties: true
+      
+      ki_knowledge:
+        type: object
+        title: "ki-knowledge Configuration"
+        additionalProperties: true
+      
+      ki_chat:
+        type: object
+        title: "ki-chat Configuration"
+        additionalProperties: true
+      
+      stackctl:
+        type: object
+        title: "stackctl Configuration"
+        additionalProperties: true
+    
     additionalProperties: true
+  
+  prompts:
+    type: object
+    title: "Prompt Templates (kicli-assist)"
+    description: "Reusable prompt templates organized by category"
+    additionalProperties:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        template:
+          type: string
+      additionalProperties: true
+
 additionalProperties: true
