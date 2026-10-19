@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 from dotenv import find_dotenv, load_dotenv
 from yaml_cfg_wizard import ConfigResolver, deep_merge
@@ -233,3 +233,114 @@ def load_config(path: Optional[Union[str, Path]] = None) -> ConfigDict:
     accessor on top of this if they want attribute-style access.
     """
     return ConfigDict(_resolve_config(path))
+
+
+class ConfigManager:
+    """Orchestration layer for config resolution with provider detection & logging setup.
+
+    Single source of truth for:
+    - LLM provider selection (follows 9-layer precedence exactly)
+    - Logging configuration (extracted from ki.yaml)
+    - Config path discovery (for status output, diagnostics, etc.)
+
+    Designed to be thin (not fat config object): delegates to load_config()
+    for layering, provides convenience methods for common app needs.
+    """
+
+    def __init__(self, config_path: Optional[Union[str, Path]] = None, echo_fn: Optional[Callable[[str], None]] = None):
+        """Initialize ConfigManager.
+
+        Args:
+            config_path: Explicit path to ki.yaml, or None for auto-discovery.
+            echo_fn: Optional callback for status output (e.g., cli.echo, typer.echo, print).
+        """
+        self.config_path = find_config_path(config_path)
+        self.echo_fn = echo_fn or (lambda x: None)
+        self._config: Optional[ConfigDict] = None
+        self._active_layers: Optional[dict[str, Optional[str]]] = None
+
+    def load(self) -> ConfigDict:
+        """Load the full resolved config (caches after first call)."""
+        if self._config is None:
+            self._config = load_config(str(self.config_path))
+        return self._config
+
+    def get_active_layers(self) -> dict[str, Optional[str]]:
+        """Get the active stage and profile names (None if not selected)."""
+        if self._active_layers is None:
+            self._active_layers = active_layers(str(self.config_path))
+        return self._active_layers
+
+    def get_llm_provider(self) -> str:
+        """Detect best available LLM provider from resolved config.
+
+        Priority (in order of checks):
+        1. Explicit provider field in config (llm.provider if set to non-"auto")
+        2. OpenAI (if API key is configured and not a placeholder)
+        3. Ollama (if reachable)
+        4. Company KI (if API key configured)
+        5. Mock (fallback for testing)
+
+        Returns the provider name as string: "openai", "ollama", "ki", or "mock".
+        This is the SINGLE SOURCE OF TRUTH for provider selection - consolidates
+        logic that was previously duplicated in cli.py and llm_integration.py.
+        """
+        config = self.load()
+
+        # Check for explicit provider selection (if user set it to non-"auto")
+        explicit_provider = config.get_path("llm.provider", "auto")
+        if explicit_provider and explicit_provider != "auto":
+            return explicit_provider
+
+        # Priority 1: OpenAI
+        openai_key = config.get_path("llm.providers.openai.api_key", "")
+        if openai_key and not openai_key.startswith("${"):
+            return "openai"
+
+        # Priority 2: Ollama (try to reach it)
+        ollama_url = config.get_path("llm.providers.ollama.base_url", "")
+        if ollama_url:
+            try:
+                import requests
+                requests.head(ollama_url, timeout=2)
+                return "ollama"
+            except Exception:
+                pass
+
+        # Priority 3: Company KI
+        ki_key = config.get_path("llm.providers.ki.api_key", "")
+        if ki_key and not ki_key.startswith("${"):
+            return "ki"
+
+        # Priority 4: Mock (fallback)
+        return "mock"
+
+    def get_logging_config(self) -> dict[str, Any]:
+        """Extract logging configuration from ki.yaml.
+
+        Returns a dict with keys:
+        - level: global log level (DEBUG, INFO, WARNING, ERROR)
+        - format: format string for log records
+        - per_module: dict mapping module names to override levels
+        - handlers: list of handler definitions (file paths, etc.)
+
+        This allows logging_integration.py to read from config instead of
+        hardcoded logconf.ini paths.
+        """
+        config = self.load()
+        logging_section = config.get_path("logging", {}) or {}
+
+        return {
+            "level": logging_section.get("level", "INFO"),
+            "format": logging_section.get("format", "%(asctime)s [%(levelname)s] %(message)s"),
+            "per_module": logging_section.get("per_module", {}),
+            "handlers": logging_section.get("handlers", []),
+        }
+
+    def echo_config_path(self) -> None:
+        """Output the resolved config path via echo_fn (for CLI status output).
+
+        Useful for `kicli-assist tui` and similar commands that want to show
+        where the config is being loaded from.
+        """
+        self.echo_fn(f"Config: {self.config_path}")
