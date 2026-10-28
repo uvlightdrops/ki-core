@@ -14,6 +14,8 @@ returned by load_config().
 from __future__ import annotations
 
 import os
+from collections.abc import Mapping
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Callable, Optional, Union
 
@@ -247,16 +249,24 @@ class ConfigManager:
     for layering, provides convenience methods for common app needs.
     """
 
-    def __init__(self, config_path: Optional[Union[str, Path]] = None, echo_fn: Optional[Callable[[str], None]] = None):
+    def __init__(
+        self,
+        config_path: Optional[Union[str, Path]] = None,
+        echo_fn: Optional[Callable[[str], None]] = None,
+        *,
+        config: Optional[Mapping[str, Any]] = None,
+    ) -> None:
         """Initialize ConfigManager.
 
         Args:
             config_path: Explicit path to ki.yaml, or None for auto-discovery.
             echo_fn: Optional callback for status output (e.g., cli.echo, typer.echo, print).
+            config: Already resolved config snapshot. When supplied, load() does
+                not read files again; useful for apps with their own config cache.
         """
         self.config_path = find_config_path(config_path)
         self.echo_fn = echo_fn or (lambda x: None)
-        self._config: Optional[ConfigDict] = None
+        self._config: Optional[ConfigDict] = ConfigDict(deepcopy(dict(config))) if config is not None else None
         self._active_layers: Optional[dict[str, Optional[str]]] = None
 
     def load(self) -> ConfigDict:
@@ -288,7 +298,7 @@ class ConfigManager:
         config = self.load()
 
         # Check for explicit provider selection (if user set it to non-"auto")
-        explicit_provider = config.get_path("llm.provider", "auto")
+        explicit_provider = config.get_path("llm.provider", "auto").strip().lower()
         if explicit_provider and explicit_provider != "auto":
             return explicit_provider
 

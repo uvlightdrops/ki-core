@@ -115,6 +115,51 @@ pip install kicli-code-assist    # Uses ki-core for AI
 pip install ki-knowledge         # Uses ki-core for AI
 ```
 
+### Configuration-driven client factory
+
+Applications should use the shared factory rather than duplicate provider
+selection and adapter construction:
+
+```python
+from ki_core import ConfigManager, ChatRequest, Message, Role
+from ki_core import create_chat_client, get_chat_models, get_chat_settings
+
+manager = ConfigManager()
+settings = get_chat_settings(manager)  # No provider probes; "auto" stays "auto".
+client = create_chat_client(manager)   # Resolves "auto" through ConfigManager.
+response = client.chat(ChatRequest([Message(Role.USER, "Hello")]))
+print(response.message.content)
+```
+
+`llm.provider` selects `ki`, `openai`, `ollama`, `mock`, or `auto`. The factory
+uses `llm.providers.<provider>.*`, `http.request_timeout`, and `http.verify_ssl`.
+It rejects missing endpoint/model/credentials and unresolved key placeholders.
+Explicit providers do not fail over silently. Optional `provider` and `model`
+arguments override selection for a caller; `ollama_base_url` only overrides
+Ollama, never the destination of remote API credentials.
+
+`get_chat_models(settings)` lists installed Ollama models or the configured
+remote/mock model; errors propagate so each UI can report them appropriately.
+For auto-detected model discovery, use
+`get_chat_settings(manager, resolve_auto=True)` first.
+
+An application with a config cache can pass its **already resolved** mapping
+directly to the factory, or use `ConfigManager(config=resolved_config)`. The
+manager copies that snapshot and does not reread files or reapply layers.
+The snapshot is not revalidated; schema validation belongs to initial config
+loading. This also keeps provider detection and client construction on the
+same configuration snapshot.
+
+The returned `AIClient` retains `chat`, `chat_stream`, `achat`, and
+`achat_stream`. Its default async methods use thread wrappers; they are not a
+replacement for the true-async `AsyncOpenAIClient` or application-specific
+`ProviderChain`/cancellation workflows.
+
+Keep domain retrieval, prompt composition, conversation history, persistence
+and framework-specific error handling in the application. `ki-knowledge` uses
+this factory; existing `kicli-code-assist` client construction can migrate to
+it incrementally without changing its session/workflow abstractions.
+
 ## Adapter contract
 
 Implement `AIClient`:

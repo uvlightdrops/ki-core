@@ -13,6 +13,14 @@ from ki_core.commands.profile import (
     run_profile_set,
 )
 from ki_core.commands.stage import run_stage_active, run_stage_list, run_stage_set
+from ki_core.commands.server_management import (
+    run_server_status,
+    run_server_register,
+    run_server_unregister,
+    run_server_detect_orphans,
+    run_server_cleanup,
+    run_server_sync,
+)
 
 __all__ = [
     "run_doctor",
@@ -26,4 +34,10 @@ __all__ = [
     "run_stage_list",
     "run_stage_set",
     "run_stage_active",
+    "run_server_status",
+    "run_server_register",
+    "run_server_unregister",
+    "run_server_detect_orphans",
+    "run_server_cleanup",
+    "run_server_sync",
 ]

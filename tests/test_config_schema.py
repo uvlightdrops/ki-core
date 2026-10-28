@@ -8,7 +8,7 @@ def test_load_config_reads_generic_base_sections(tmp_path: Path) -> None:
     config_path.write_text(
         """
 llm:
-  default_provider: "openai"
+  provider: "openai"
   providers:
     ki:
       base_url: "https://ki.example.com"
@@ -43,7 +43,7 @@ http:
 
 def test_load_config_get_path_returns_default_for_missing_keys(tmp_path: Path) -> None:
     config_path = tmp_path / "ki.yaml"
-    config_path.write_text("llm:\n  default_provider: mock\n", encoding="utf-8")
+    config_path.write_text("llm:\n  provider: mock\n", encoding="utf-8")
 
     config = load_config(config_path)
 

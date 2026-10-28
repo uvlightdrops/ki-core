@@ -2,6 +2,7 @@ from ki_core.config import ConfigDict, ConfigManager, active_layers, find_config
 from ki_core.cert_diagnostics import diagnose_certificate
 from ki_core.core.client import AIClient
 from ki_core.core.models import ChatRequest, ChatResponse, Message, Role, StreamEvent, StreamEventType
+from ki_core.chat import ChatSettings, create_chat_client, get_chat_models, get_chat_settings
 
 __all__ = [
     "active_layers",
@@ -18,4 +19,8 @@ __all__ = [
     "Role",
     "StreamEvent",
     "StreamEventType",
+    "ChatSettings",
+    "create_chat_client",
+    "get_chat_models",
+    "get_chat_settings",
 ]
