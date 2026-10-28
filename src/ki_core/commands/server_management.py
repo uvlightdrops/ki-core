@@ -21,8 +21,8 @@ def run_server_status(
     Returns:
         Dict with service status data.
     """
-    # Import here to avoid circular dependencies
-    from kicli_code_assist.server_management import ServiceRegistry, ServiceDetector
+    # Import from ki-core server_management
+    from ki_core.server_management import ServiceRegistry, ServiceDetector
     
     if echo_fn is None:
         echo_fn = print
@@ -94,7 +94,7 @@ def run_server_register(
     Returns:
         True if successful.
     """
-    from kicli_code_assist.server_management import ServiceRegistry
+    from ki_core.server_management import ServiceRegistry
     
     if echo_fn is None:
         echo_fn = print
@@ -125,7 +125,7 @@ def run_server_unregister(
     Returns:
         True if successful.
     """
-    from kicli_code_assist.server_management import ServiceRegistry
+    from ki_core.server_management import ServiceRegistry
     
     if echo_fn is None:
         echo_fn = print
@@ -151,7 +151,7 @@ def run_server_detect_orphans(
     Returns:
         Dict with orphan data.
     """
-    from kicli_code_assist.server_management import (
+    from ki_core.server_management import (
         ServiceRegistry, OrphanDetector
     )
     
@@ -194,7 +194,7 @@ def run_server_cleanup(
     Returns:
         Dict with cleanup stats.
     """
-    from kicli_code_assist.server_management import (
+    from ki_core.server_management import (
         ServiceRegistry, OrphanDetector
     )
     
@@ -232,7 +232,7 @@ def run_server_sync(
     Returns:
         Dict with sync stats.
     """
-    from kicli_code_assist.server_management import (
+    from ki_core.server_management import (
         ServiceRegistry, OrphanDetector
     )
     
