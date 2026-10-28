@@ -20,6 +20,9 @@ from ki_core.commands.server_management import (
     run_server_detect_orphans,
     run_server_cleanup,
     run_server_sync,
+    run_server_start,
+    run_server_stop,
+    run_server_restart,
 )
 
 __all__ = [
@@ -40,4 +43,7 @@ __all__ = [
     "run_server_detect_orphans",
     "run_server_cleanup",
     "run_server_sync",
+    "run_server_start",
+    "run_server_stop",
+    "run_server_restart",
 ]

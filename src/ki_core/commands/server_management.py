@@ -272,3 +272,123 @@ def run_server_sync(
     
     # Show updated status
     return run_server_status(echo_fn=echo_fn)
+
+
+# ============================================================================
+# Service Control Commands (start, stop, restart)
+# ============================================================================
+
+def run_server_start(
+    service_name: str,
+    echo_fn: Optional[Callable[[str], None]] = None,
+    config: Optional[Dict] = None,
+) -> Dict:
+    """Start a service.
+    
+    Args:
+        service_name: Name of service to start
+        echo_fn: Custom output function (defaults to print)
+        config: Service configuration dict with 'services' key
+    
+    Returns:
+        Dict with result status
+    """
+    from ki_core.server_management import ServiceRegistry, ServiceController
+    from ki_core.config import load_config
+    
+    if echo_fn is None:
+        echo_fn = print
+    
+    # Load config if not provided
+    if config is None:
+        try:
+            config = load_config()
+        except:
+            config = {}
+    
+    registry = ServiceRegistry()
+    controller = ServiceController(registry, config=config)
+    
+    result = controller.start(service_name)
+    
+    if result['success']:
+        echo_fn(f"✓ {result['message']}")
+    else:
+        echo_fn(f"✗ {result['message']}")
+    
+    return result
+
+
+def run_server_stop(
+    service_name: str,
+    echo_fn: Optional[Callable[[str], None]] = None,
+    force: bool = False,
+) -> Dict:
+    """Stop a service.
+    
+    Args:
+        service_name: Name of service to stop
+        echo_fn: Custom output function (defaults to print)
+        force: Use SIGKILL if True
+    
+    Returns:
+        Dict with result status
+    """
+    from ki_core.server_management import ServiceRegistry, ServiceController
+    
+    if echo_fn is None:
+        echo_fn = print
+    
+    registry = ServiceRegistry()
+    controller = ServiceController(registry)
+    
+    result = controller.stop(service_name, force=force)
+    
+    if result['success']:
+        echo_fn(f"✓ {result['message']}")
+    else:
+        echo_fn(f"✗ {result['message']}")
+    
+    return result
+
+
+def run_server_restart(
+    service_name: str,
+    echo_fn: Optional[Callable[[str], None]] = None,
+    config: Optional[Dict] = None,
+) -> Dict:
+    """Restart a service (stop + start).
+    
+    Args:
+        service_name: Name of service to restart
+        echo_fn: Custom output function (defaults to print)
+        config: Service configuration dict
+    
+    Returns:
+        Dict with result status
+    """
+    from ki_core.server_management import ServiceRegistry, ServiceController
+    from ki_core.config import load_config
+    
+    if echo_fn is None:
+        echo_fn = print
+    
+    # Load config if not provided
+    if config is None:
+        try:
+            config = load_config()
+        except:
+            config = {}
+    
+    registry = ServiceRegistry()
+    controller = ServiceController(registry, config=config)
+    
+    result = controller.restart(service_name)
+    
+    if result['success']:
+        echo_fn(f"✓ {result['message']}")
+    else:
+        echo_fn(f"✗ {result['message']}")
+    
+    return result
+
