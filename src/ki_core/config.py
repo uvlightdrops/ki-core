@@ -154,19 +154,29 @@ def active_layers(path: Optional[Union[str, Path]] = None) -> dict[str, Optional
     }
 
 
-def _resolve_config(path: Optional[Union[str, Path]] = None) -> dict[str, Any]:
+def _resolve_config(
+    path: Optional[Union[str, Path]] = None, *,
+    runtime_candidate: Optional[Mapping[str, Any]] = None,
+    project_root: Optional[Path] = None,
+    creds_candidate: Optional[Mapping[str, Any]] = None,
+) -> dict[str, Any]:
     """Resolve complete config from all sources using ConfigResolver."""
-    config_path = _find_yaml_config_path(path)
-    creds_path = _find_creds_yaml_path(path)
+    config_path = ((Path(path) if path is not None else project_root / "ki.yaml")
+                   if project_root is not None else _find_yaml_config_path(path))
+    creds_path = _find_creds_yaml_path(config_path if project_root is not None else path)
 
-    layered_config_dir = _layered_config_dir(path)
+    layered_config_dir = project_root / "config" if project_root is not None else _layered_config_dir(path)
     stage_file = _layer_file(layered_config_dir / "stages", STAGE_ENV, ACTIVE_STAGE_MARKER)
     profile_file = _layer_file(layered_config_dir / "profiles", PROFILE_ENV, ACTIVE_PROFILE_MARKER)
 
     # Get all schemas for validation (base + app-specific)
-    schemas = get_merged_schemas()
+    schemas = get_merged_schemas(project_root)
 
-    resolver = ConfigResolver(
+    class CandidateResolver(ConfigResolver):
+        def _runtime_layers(self):
+            return [dict(runtime_candidate)]
+
+    resolver = (CandidateResolver if runtime_candidate is not None else ConfigResolver)(
         defaults=[config_path] if config_path else [],
         defaults_dir=layered_config_dir / "defaults" if (layered_config_dir / "defaults").exists() else None,
         profiles=[profile_file] if profile_file else [],
@@ -183,7 +193,16 @@ def _resolve_config(path: Optional[Union[str, Path]] = None) -> dict[str, Any]:
         payload = {}
 
     # Merge in creds if available (separate for security)
-    if creds_path:
+    if creds_candidate is not None:
+        class CredentialsCandidateResolver(ConfigResolver):
+            def _runtime_layers(self):
+                return [dict(creds_candidate)]
+
+        creds_payload = CredentialsCandidateResolver(
+            schema_file=schemas[0] if schemas else None,
+        ).resolve()
+        payload = deep_merge(payload, creds_payload)
+    elif creds_path:
         creds_resolver = ConfigResolver(
             defaults=[creds_path],
             schema_file=schemas[0] if schemas else None,

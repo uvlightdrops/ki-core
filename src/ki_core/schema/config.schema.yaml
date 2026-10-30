@@ -29,6 +29,7 @@ properties:
     properties:
       provider:
         type: string
+        enum: ["auto", "ki", "openai", "ollama", "mock"]
         default: "auto"
         description: "Active provider: 'auto' (auto-detect), 'openai', 'ollama', 'ki', or 'mock'. Auto-detect order: openai > ollama > ki > mock"
       
@@ -186,6 +187,7 @@ properties:
     properties:
       request_timeout:
         type: integer
+        minimum: 1
         default: 30
         description: "Default request timeout in seconds"
       verify_ssl:

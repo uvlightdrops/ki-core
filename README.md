@@ -22,6 +22,86 @@ Provides unified LLM provider access, configuration management, and CLI tools.
 
 ## Quick start
 
+### Schema-driven runtime settings (Django, Flask, CLI)
+
+`ki_core.runtime_settings` has no Django dependency. Hosts can reuse the same
+service from any framework:
+
+```python
+from pathlib import Path
+from ki_core.runtime_settings import RuntimeSettings, ConflictError, ValidationError
+
+settings = RuntimeSettings(
+    Path("/srv/my-project"),
+    restart_paths=("apps.my_app.worker",),
+    excluded_paths=("apps.my_app.database_owned",),
+)
+snapshot = settings.snapshot()
+snapshot = settings.save(snapshot["revision"], {"http.request_timeout": 45})
+snapshot = settings.save(snapshot["revision"], {}, remove=("http.request_timeout",))
+```
+
+The JSON-compatible snapshot contains a revision and individually discovered
+schema rows, never a raw resolved configuration dump. Rows describe types,
+enums, effective/runtime values, editability/reasons, higher-layer shadowing,
+configured-secret status, and restart requirements. Schemas are merged from
+ki-core and the project's `schema/*.schema.yaml`. Typed arrays and closed objects,
+including maps with explicitly typed `additionalProperties`, are editable only
+when their entire schema is safe. Nullable/union values must satisfy their schema.
+Unknown schema-less subtrees are inventoried read-only without exposing values.
+Open objects, unsupported schema constructs, secret-containing containers,
+secret fields and application exclusions are not editable. Add a precise schema
+to register additional settings; never accept arbitrary request paths.
+
+Writes target only `<project>/config/runtime/runtime.yaml`, reject symlinked
+targets, serialize under an advisory lock, detect stale revisions
+(`ConflictError`), validate both submitted fields and the merged effective
+configuration (`ValidationError`), and atomically replace the file with mode
+`0600`. Removal replaces the runtime layer during resolution, preserving lower
+defaults/profile/stage values and higher `KI_CFG_*` / `creds.yaml` precedence.
+`resolve_runtime_candidate(root, candidate, config_path=...)` shares that
+resolution pipeline with legacy adapters; its **internal** result includes
+credentials and must never be exposed to a client. Like `load_config`, this
+resolver performs base-schema validation; the editor additionally validates the
+merged application schema at save time.
+
+Secret values, unsafe URLs and untyped containers are not returned. Values sourced from
+credentials are configured-only and read-only, even for an otherwise editable
+field. Environment shadowing is shown explicitly. Default restart markers cover
+deployment/bootstrap/server/database/storage/logging paths; applications extend
+these markers for their startup-cached settings. LLM/HTTP settings are not
+blanket-marked for restart. “Dynamic” means the host must reload configuration
+when building its next operation/client; this service does not mutate already
+running workers or replace their cached clients. Authentication and CSRF belong
+in the framework adapter (see `widgetkit_django.runtime_settings`).
+
+Write-only credential editing uses a **separate transaction/revision**:
+
+```python
+credentials = settings.secret_snapshot()  # only paths/configured/overridden flags
+credentials = settings.save_secret(
+    credentials["revision"], "llm.providers.openai.api_key", new_key,
+)
+credentials = settings.remove_secret(credentials["revision"], "llm.providers.openai.api_key")
+```
+
+These methods return the same configured-only `secret_snapshot` shape, never
+values. Only registered scalar string secret fields are supported; application
+exclusions/read-only schemas still apply. Blank/whitespace input leaves a field
+unchanged (it is not deletion). Removal deletes only the credentials override:
+environment/runtime/default layers may still provide a value. Placeholder values
+are never echoed. `ConflictError` applies to the credentials revision independently
+of runtime edits; `ValidationError` rejects invalid paths/values or effective
+merged configuration. There is deliberately no mixed-layer atomic save.
+
+The active project-local `creds.yaml` or `config/creds.yaml` is preserved; without
+one, writes create project-root `creds.yaml`. Active credentials outside the
+project, symlinked targets/parents, or unsafe roots are rejected without migration
+or silently shadowing the active credentials. Writes reuse the same advisory
+locking/atomic replacement and force mode `0600`. Ordinary `Editor` users still
+cannot register secret paths. Already-created clients do not magically refresh;
+hosts must reload on their next operation (or restart startup-cached clients).
+
 ```bash
 cd /home/flow/dev_flow/ki-core
 python3 -m venv .venv
