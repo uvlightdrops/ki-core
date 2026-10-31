@@ -1,0 +1,20 @@
+# ki-core app-level configuration
+# Shared AI client abstraction for OpenAI/Ollama/Mock providers
+
+ki:
+  # Provider configuration
+  providers:
+    openai:
+      base_url: "https://api.openai.com/v1"
+      timeout: 30
+    ollama:
+      base_url: "http://localhost:11434"
+      timeout: 120
+    mock:
+      enabled: false
+  
+  # Client defaults
+  defaults:
+    model: "gpt-4"
+    temperature: 0.7
+    max_tokens: 2048

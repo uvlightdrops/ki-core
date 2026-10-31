@@ -48,3 +48,12 @@ target-version = "py310"
 python_version = "3.10"
 strict = true
 packages = ["ki_core"]
+
+[tool.stackctl]
+# Stack configuration for ki-core (library)
+config_loader = "ki_core:load_config"
+config_key = "stack"
+
+[[tool.stackctl.siblings]]
+name = "yaml-cfg-wizard"
+url = "https://github.com/uvlightdrops/yaml-cfg-wizard.git"

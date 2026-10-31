@@ -1,0 +1,3 @@
+# Local development stage
+stack:
+  target: local
