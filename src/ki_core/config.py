@@ -20,9 +20,12 @@ from pathlib import Path
 from typing import Any, Callable, Optional, Union
 
 from dotenv import find_dotenv, load_dotenv
-from yaml_cfg_wizard import ConfigResolver, deep_merge
+from yaml_cfg_wizard import (
+    ConfigResolver,
+    merge_with_replacement,
+    strip_replace_markers,
+)
 from yaml_cfg_wizard.schema_utils import merge_schemas, scaffold_skeleton_from_schema
-
 
 load_dotenv(find_dotenv())
 
@@ -186,9 +189,10 @@ def _resolve_config(
         else None,
         schema_file=schemas[0] if schemas else None,  # Use base schema for validation
         env_prefix="KI_CFG_",
+        replace_sections=True,
     )
 
-    payload = resolver.resolve()
+    payload = resolver.resolve(preserve_replace_markers=True)
     if not isinstance(payload, dict):
         payload = {}
 
@@ -200,21 +204,23 @@ def _resolve_config(
 
         creds_payload = CredentialsCandidateResolver(
             schema_file=schemas[0] if schemas else None,
-        ).resolve()
-        payload = deep_merge(payload, creds_payload)
+            replace_sections=True,
+        ).resolve(preserve_replace_markers=True)
+        payload = merge_with_replacement(payload, creds_payload)
     elif creds_path:
         creds_resolver = ConfigResolver(
             defaults=[creds_path],
             schema_file=schemas[0] if schemas else None,
+            replace_sections=True,
         )
-        creds_payload = creds_resolver.resolve()
+        creds_payload = creds_resolver.resolve(preserve_replace_markers=True)
         if isinstance(creds_payload, dict):
-            payload = deep_merge(payload, creds_payload)
+            payload = merge_with_replacement(payload, creds_payload)
 
     # Fill in anything not explicitly set with the merged schema's defaults,
     # so there is no need for hardcoded fallback values in application code.
     schema_defaults = scaffold_skeleton_from_schema(merge_schemas(*schemas)) if schemas else {}
-    return deep_merge(schema_defaults, payload)
+    return strip_replace_markers(merge_with_replacement(schema_defaults, payload))
 
 
 class ConfigDict(dict):
