@@ -1,3 +1,13 @@
+---
+project: ki-core
+agent_project: ki-ecosystem # Current updater
+purpose: Shared KI library usage
+created: null # Unknown
+first_tracked: 2026-09-02
+updated: 2026-11-01
+update_reason: Section replacement
+---
+
 # ki-core
 
 Shared Python AI client abstraction layer for `ki-knowledge`, `kicli-code-assist`, and other projects.
@@ -21,6 +31,16 @@ Provides unified LLM provider access, configuration management, and CLI tools.
 
 
 ## Quick start
+
+### Explicit configuration section replacement
+
+Requires `yaml-cfg-wizard>=0.3.0`. The shared resolver supports
+`__replace__: true` inside a YAML dictionary (for example, `stack`) to remove
+inherited keys instead of merging them. Later runtime/environment/credential
+layers can still override or add values. Replacement metadata is retained
+internally through credential and schema-default merging, then removed from
+`load_config()` and candidate-resolution results. `false` means ordinary merge;
+non-boolean markers fail explicitly.
 
 ### Schema-driven runtime settings (Django, Flask, CLI)
 
