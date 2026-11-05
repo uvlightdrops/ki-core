@@ -22,12 +22,47 @@ from typing import Any, Callable, Optional, Union
 from dotenv import find_dotenv, load_dotenv
 from yaml_cfg_wizard import (
     ConfigResolver,
-    merge_with_replacement,
-    strip_replace_markers,
+    deep_merge,
 )
 from yaml_cfg_wizard.schema_utils import merge_schemas, scaffold_skeleton_from_schema
 
 load_dotenv(find_dotenv())
+
+
+def strip_replace_markers(obj: Any) -> Any:
+    """Recursively remove __replace__: true markers from config dicts.
+    
+    This is used after merging to clean up the config structure.
+    """
+    if isinstance(obj, dict):
+        # Remove __replace__ marker and recurse on remaining values
+        return {
+            k: strip_replace_markers(v)
+            for k, v in obj.items()
+            if k != "__replace__"
+        }
+    elif isinstance(obj, list):
+        return [strip_replace_markers(item) for item in obj]
+    else:
+        return obj
+
+
+def merge_with_replacement(base: Any, override: Any) -> Any:
+    """Merge override into base, respecting __replace__: true markers.
+    
+    If override contains __replace__: true at any dict level, that entire
+    section replaces the base (no recursive merge). After merge,
+    strip_replace_markers() cleans up the markers.
+    
+    Args:
+        base: Base configuration dict
+        override: Override configuration dict (may contain __replace__: true)
+    
+    Returns:
+        Merged dict with __replace__ markers removed
+    """
+    result = deep_merge(base, override)
+    return strip_replace_markers(result)
 
 # One stage (dev-lokal, prod, ...) and at most one profile are active per host:
 # env var first, then a marker file in the layer directory (same marker
