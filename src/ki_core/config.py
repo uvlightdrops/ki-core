@@ -224,10 +224,9 @@ def _resolve_config(
         else None,
         schema_file=schemas[0] if schemas else None,  # Use base schema for validation
         env_prefix="KI_CFG_",
-        replace_sections=True,
     )
 
-    payload = resolver.resolve(preserve_replace_markers=True)
+    payload = resolver.resolve()
     if not isinstance(payload, dict):
         payload = {}
 
